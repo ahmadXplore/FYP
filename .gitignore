@@ -1,0 +1,16 @@
+# Dependencies and build output
+node_modules/
+dist/
+dist-ssr/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+
+# Local runtime data and environment files
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
+!.env.example

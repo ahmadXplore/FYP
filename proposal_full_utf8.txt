@@ -1,0 +1,1038 @@
+=== PAGE 1 ===
+FINAL YEAR PROJECT PROPOSAL
+AI-Based Emergency Vehicle Priority
+and Dynamic Green Corridor System for
+Intelligent Traffic Management
+AI-Driven Emergency Traffic Management Using Real-Time Video Analytics, Traffic
+Prediction and Dynamic Multi-Intersection Signal Control
+Figure 1: The moving green corridor – intersections are prepared ahead of the ambulance and restored behind it.
+Submitted by
+Muhammad Ahmad Asif (F2023266537)
+Muhammad Taimoor Nasir (F2023266620)
+Muhammad Usman Danial (F2023266622)
+Advisor
+Prof. Hafiz Ahsan Arshad
+Co-advisor
+Dr. Muhammad Husnain Ashfaq
+Institution
+University of Management and Technology (UMT), Lahore
+Computer Science – School of System & Technology
+Proposed environment
+Punjab Safe Cities Authority (PSCA) – PPIC3, Lahore (proposed only; not yet confirmed)
+Project type
+Final Year Project (Artificial Intelligence / Intelligent Transportation Systems)
+Date
+October 2026
+
+
+=== PAGE 2 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 2
+Abstract
+This project proposes an AI decision layer that gives ambulances a predictive, safety-validated green
+corridor across a whole route, instead of one intersection at a time. Ambulances lose critical minutes at
+congested signalised intersections, and green corridors are still largely arranged by hand.
+Given an emergency request, the system selects a traffic-aware route to the most suitable hospital,
+predicts when the ambulance will reach each intersection, and coordinates a moving green corridor,
+restoring normal signal operation behind the vehicle. Development and evaluation run in a SUMO-based
+digital twin of a Lahore corridor. The architecture is designed to plug into the live data and signal
+infrastructure of the Punjab Safe Cities Authority (PSCA) wherever access is later authorised; no PSCA
+collaboration is confirmed at this stage (Section 14).
+1. Project Team and Supervision
+The team has three members; the project is supervised by two UMT faculty members. A PSCA technical
+mentor has not been confirmed.
+1.1 Team members
+No.
+Name
+Roll No.
+Email
+1
+Muhammad Ahmad Asif
+F2023266537
+F2023266537@umt.edu.pk
+2
+Muhammad Taimoor Nasir
+F2023266620
+F2023266620@umt.edu.pk
+3
+Muhammad Usman Danial
+F2023266622
+F2023266622@umt.edu.pk
+1.2 Supervision
+Role
+Name
+Email
+Project advisor
+Prof. Hafiz Ahsan Arshad
+ahsan.arshad@umt.edu.pk
+Project co-advisor
+Dr. Muhammad Husnain Ashfaq
+husnain.ashfaq@umt.edu.pk
+PSCA technical mentor
+Not yet confirmed
+N/A
+Institution: University of Management and Technology (UMT), Lahore. Department: Computer Science,
+School of System & Technology.
+1.3 Proposed work distribution
+The project is divided into three workstreams so each member owns a clear area, while all members
+contribute to evaluation and the final thesis. Ownership will be finalised with the advisor and co-advisor.
+Workstream
+Scope
+A – Data, Perception and Prediction
+PSCA data requirements, GIS / PostGIS, computer vision (YOLO + tracking), traffic
+analytics, ETA and traffic-prediction models.
+B – Simulation, Routing and Control
+SUMO digital twin, TraCI / libsumo, traffic-aware A* routing, green-corridor engine,
+OR-Tools optimisation, PPO controller, safety layer.
+C – Platform, Integration and
+Evaluation
+FastAPI backend, database schema, data-provider and signal-controller adapters,
+React dashboard, agentic layer, testing, experiments, documentation.
+2. Problem Statement
+Ambulances in Lahore cross many congested signalised intersections with no automated, route-wide
+priority, and every minute of delay reduces a patient's chance of a good outcome.
+2.1 Background
+Lahore is Pakistan's second-largest city and carries dense, mixed traffic: cars, motorcycles, rickshaws,
+buses and trucks share the same signalised corridors, and peak-hour congestion is routine. An ambulance
+responding to a cardiac arrest, stroke or major trauma must cross many of these intersections.
+
+
+=== PAGE 3 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 3
+In practice, ambulances rely on sirens, the driver's judgement and occasionally manual coordination with
+traffic staff. A green corridor, when arranged at all, is normally set up by radio or phone, covers a handful
+of intersections and depends on human operators.
+The Punjab Police Integrated Command, Control and Communication Centre (PPIC3) in Lahore already
+brings together intelligent traffic management, a large CCTV network, centralised signal control (PTSC),
+GPS-based dispatch (AVLS) and 1122 emergency coordination. What public documentation does not show
+is an automated decision layer that uses these to serve a specific emergency vehicle.
+2.2 The gaps
+•
+Reactive, not predictive. Priority is triggered only when the ambulance is close to a signal, leaving
+no time to clear the queue already formed.
+•
+One intersection at a time. Existing preemption acts locally; nothing plans arrival time at every
+intersection along the route.
+•
+Shortest distance is not fastest time. Routes ignore predicted congestion, signal delay and
+incidents.
+•
+Manual and hard to scale. Operators cannot hand-configure corridors for several simultaneous
+emergencies.
+•
+Side-effects are ignored. Turning every signal green causes cross-traffic gridlock and long recovery
+times.
+•
+No safe place to experiment. Live signals cannot be a test bench, so new strategies are hard to
+evaluate before deployment.
+2.3 Formal problem statement
+There is no automated, predictive and safety-validated decision layer that, for a given emergency vehicle,
+(i) selects a traffic-aware route to the most suitable hospital, (ii) forecasts when the vehicle will reach each
+intersection on that route, and (iii) coordinates signals across the entire route, while limiting delay to
+normal traffic and preventing unsafe signal states.
+Our contribution is emergency-specific, predictive, multi-intersection coordination, not "AI traffic
+management" in general. Verifying what PSCA's ITMS already provides is the first task of the project
+(Section 12).
+3. Proposed Solution
+We propose an AI emergency-priority decision layer built on top of existing traffic and
+emergency-response infrastructure. It does not replace cameras, ITMS or signal controllers: it consumes
+their data, decides what should happen along an ambulance's route, validates every action for safety, and
+issues the resulting signal plan.
+3.1 How the system works
+When an emergency request arrives, the following pipeline runs automatically, without an operator
+opening signals one by one:
+1
+Emergency request received – incident location, priority and assigned ambulance.
+2
+Traffic state acquired – vehicle count, speed, density and congestion level from CCTV / ITMS data.
+3
+Ambulance located – GPS position, speed and heading from AVLS, map-matched to the road
+network.
+4
+Hospital selected – the most suitable destination by predicted travel time (and capacity or speciality
+data, if available).
+5
+Route computed – traffic-aware A* using predicted travel time, signal delay and incident penalties
+rather than distance.
+6
+Arrival predicted – estimated arrival at the destination and at every upcoming intersection.
+7
+Intersection traffic forecast – expected queues and flow at each intersection when the ambulance
+will arrive.
+
+
+=== PAGE 4 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 4
+8
+Green corridor planned – which signals, when to start preparing, and how long to hold priority.
+9
+Safety validation – every command is checked for conflicts, minimum green, pedestrian phases and
+cross-traffic impact.
+10 Priority executed – commands are applied in SUMO and, only where PSCA authorises, requested
+through the PTSC interface.
+11 Progress monitored – route and corridor are re-planned if traffic changes (for example an accident
+ahead).
+12 Normal operation restored – each intersection returns to its regular plan as soon as the ambulance
+has cleared it.
+3.2 What makes the solution intelligent
+•
+Predictive control. Signals are prepared while the ambulance is still, say, 40 seconds away, so
+queues clear before it arrives.
+•
+Route-wide coordination. One plan covers all intersections on the route and moves with the vehicle.
+•
+Traffic-aware routing. Edge costs use predicted travel time, congestion and incident penalties, so
+the chosen route can differ from the shortest one.
+•
+Multi-objective decisions. The controller minimises ambulance delay while limiting extra delay,
+queue growth and signal switching for normal traffic.
+•
+Dynamic re-routing. If congestion or an incident changes the best route, route and corridor are
+recomputed on the fly.
+•
+Safe by design. AI components only recommend; a rule-based safety layer approves or rejects every
+signal command.
+4. Existing Systems and How Our Project Differs
+Several systems address parts of this problem, but none combines traffic-aware routing, per-intersection
+arrival prediction, route-wide corridor planning and independent safety validation in one decision layer.
+4.1 Existing approaches
+Existing approach
+What it does
+Limitation relative to our goal
+Manual green corridors
+(police / operators)
+Operators coordinate signals along a route
+by radio or phone.
+Labour-intensive, covers few intersections, no
+prediction, does not scale to concurrent
+emergencies.
+Opticom-type preemption
+(3M / GTT / Miovision)
+On-vehicle unit sends a request to
+equipped intersections; controller gives
+green on the ambulance's approach, then
+resumes normal operation.
+Works intersection by intersection and needs
+compatible equipment on vehicle and signal.
+Does not choose route or hospital, forecast
+downstream traffic or plan the corridor as a
+whole.
+SCATS route preemption
+Adaptive system whose route preemption
+facility lets agencies define emergency
+plans for routes.
+Emergency routes are pre-defined rather than
+computed live; no per-signal arrival forecast or
+live traffic-aware hospital and route choice.
+Adaptive control (SCOOT,
+SCATS, SURTRAC)
+Continuously adapts cycle, split and offset
+to observed traffic.
+Optimised for normal traffic; literature notes
+slower response to abnormal situations such as
+incidents and emergencies.
+Navigation apps (Google
+Maps, Waze)
+Live traffic-aware routing for drivers.
+Cannot control signals, give emergency priority
+or select hospitals.
+PSCA ITMS / PTSC (existing
+platform)
+CCTV analytics, journey-time monitoring,
+central signal control, dispatch and 1122
+coordination.
+The foundation we build on, not a competitor.
+Public documentation does not describe an
+automated, predictive, route-wide emergency
+corridor; to be confirmed with PSCA.
+Academic RL / optimisation
+studies
+Reinforcement learning or optimisation for
+emergency-vehicle signal control.
+Typically single-intersection or synthetic
+networks, rarely combined with live routing,
+prediction, a safety layer and real city data.
+
+
+=== PAGE 5 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 5
+4.2 Capability comparison
+Capability
+Manual
+corridor
+Opticom-ty
+pe EV
+SCATS route
+pre-emption
+Adaptive
+control
+Navigation
+apps
+Proposed
+system
+Traffic-aware route to hospital
+Partial
+No
+Partial
+No
+Yes
+Yes
+Predicts arrival at each
+intersection
+No
+Partial
+No
+No
+Partial
+Yes
+Coordinates the whole route
+Partial
+No
+Yes
+Partial
+No
+Yes
+Considers downstream
+congestion and cross-traffic
+impact
+Partial
+No
+No
+Partial
+No
+Yes
+Independent safety validation of
+each command
+Partial
+Partial
+Partial
+Partial
+No
+Yes
+No new vehicle or roadside
+hardware
+Yes
+No
+Partial
+Partial
+Yes
+Yes*
+Tested in a digital twin before
+deployment
+No
+No
+No
+No
+No
+Yes
+* Relies on AVLS / GPS data, subject to PSCA authorisation. Ratings are our assessment from public descriptions and vary
+by vendor version and deployment.
+4.3 Why our project is different
+1
+Predictive, not reactive. We forecast ambulance arrival and intersection traffic and prepare signals
+ahead of time.
+2
+Routing and signals in one loop. Hospital and route selection, corridor planning and signal control
+share the same digital twin and predictions.
+3
+Aware of side-effects. The objective penalises delay to normal traffic, queue growth and signal
+switching, so the corridor does not create gridlock elsewhere.
+4
+Safety layer between AI and signals. Machine-learning and LLM components never command a
+signal directly; a rule-based validator does.
+5
+Built for PSCA's ecosystem. It reuses existing data (CCTV analytics, AVLS, PTSC) instead of new
+roadside hardware, and is designed for Lahore's mixed traffic, including motorcycles and rickshaws.
+6
+Measurable and reproducible. A calibrated SUMO digital twin lets us compare six control strategies
+on the same scenarios with quantitative metrics.
+4.4 Public sources consulted
+•
+Miovision, Opticom emergency vehicle preemption overview – www2.miovision.com/opticom
+•
+R. Baskerville, "Adelaide's high tech – low cost emergency vehicle priority system" (SCATS route
+pre-emption) – swov.nl
+•
+Sydney Coordinated Adaptive Traffic System (SCATS) overview –
+en.wikipedia.org/wiki/Sydney_Coordinated_Adaptive_Traffic_System
+•
+Incorporating V2I communications into adaptive traffic control systems – arXiv:1606.01010
+•
+Punjab Police, PPIC3 overview – lahorepolice.punjab.gov.pk/ppic3; Punjab Safe Cities Authority –
+punjabpolice.gov.pk/psca
+5. Project Overview
+The project delivers a complete, evaluated emergency-priority layer, proven first in simulation and
+designed to connect to PSCA infrastructure only if authorised.
+5.1 Aim
+To design, build and evaluate an AI-based emergency traffic-management layer that reduces ambulance
+travel time by combining real-time traffic understanding, prediction, traffic-aware routing and safe,
+coordinated multi-intersection signal priority.
+
+
+=== PAGE 6 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 6
+5.2 Objectives
+1
+Establish, with PSCA (if collaboration is confirmed), exactly which traffic, camera, signal, GIS and
+emergency data can be used, and under what security conditions.
+2
+Build a GIS-based digital twin of a real Lahore corridor in SUMO, calibrated with available traffic
+observations.
+3
+Extract traffic state (count, speed, density, queue, congestion level) from video or from processed
+detections.
+4
+Predict ambulance ETA and short-term traffic (speed, volume, travel time, congestion) at 1, 3 and 5
+minutes.
+5
+Implement traffic-aware routing and hospital selection with dynamic re-routing.
+6
+Implement a predictive, multi-intersection green-corridor engine with an independent safety layer.
+7
+Investigate a reinforcement-learning (PPO) controller for multi-objective signal optimisation.
+8
+Deliver an operator dashboard and quantitatively evaluate the system against baseline strategies.
+5.3 Scope
+In scope
+Out of scope
+Digital twin of a selected Lahore corridor
+Replacing PSCA's ITMS, cameras or signal hardware
+Computer-vision traffic analytics
+Installing new roadside or on-vehicle hardware
+ETA and traffic prediction
+Uncontrolled commands to live signals
+Traffic-aware routing and hospital selection
+City-wide deployment
+Green-corridor planning and safety validation
+Fine-tuning large language models
+RL controller and constrained agentic layer
+Public-cloud-dependent architecture
+Operator dashboard
+Adapters for PSCA data and PTSC (used only if authorised)
+5.4 Operating modes and data adapters
+Mode
+How it works
+Purpose
+Mode 1 – PSCA Real Data
+Authorised PSCA data (traffic, ambulance location, signal state,
+GIS) flows through the same AI pipeline and produces live
+recommendations. Available only if PSCA collaboration is
+confirmed.
+Real-world validation and
+integration.
+Mode 2 – Digital Twin /
+Simulation
+Traffic observations (PSCA-provided if available, otherwise
+public or synthetic data) calibrate a SUMO model of a Lahore
+corridor; the AI controller acts on simulated signals through
+TraCI.
+Main development, training
+and evaluation environment;
+works even if no PSCA access
+is granted.
+To keep the AI independent of where data comes from, the code uses two interfaces: a
+TrafficDataProvider (PSCA, simulation or test data) and a SignalController (SUMO or PSCA). Switching
+modes means swapping an adapter, not rewriting the system.
+6. Functional and Non-Functional Requirements
+This section consolidates what the system must do (functional) and the quality and operating constraints
+it must satisfy (non-functional).
+6.1 Functional requirements
+ID
+The system must…
+FR1
+Accept an emergency request containing incident location, priority and assigned ambulance.
+FR2
+Ingest traffic state (count, speed, density, queue, congestion level) from video, processed detections or
+simulation.
+
+
+=== PAGE 7 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 7
+ID
+The system must…
+FR3
+Locate the ambulance from GPS data and map-match it to the road network.
+FR4
+Select the most suitable hospital and compute a traffic-aware route to it by predicted travel time.
+FR5
+Predict ambulance ETA at the destination and at every upcoming intersection.
+FR6
+Forecast short-term traffic (speed, volume, travel time, congestion) at 1, 3 and 5 minutes.
+FR7
+Plan a multi-intersection green corridor: which signals, when to prepare, how long to hold priority.
+FR8
+Validate every signal command for conflicts, minimum green, pedestrian phases and cross-traffic impact before
+execution.
+FR9
+Apply validated commands to SUMO signals and, only where authorised, to the PSCA PTSC interface.
+FR10
+Re-plan route and corridor when conditions change (for example an incident) and restore each intersection to its
+normal plan after the ambulance passes.
+FR11
+Display a live operator dashboard: map, route, ETA, signal states, AI decisions, time saved versus baseline and
+metrics.
+FR12
+Log all decisions, including rejected commands, and support role-based access (Admin, PSCA Operator, Traffic
+Operator, Research read-only).
+6.2 Non-functional requirements
+ID
+Category
+Requirement
+NFR1
+Safety
+AI components only recommend; a rule-based validator approves or rejects every
+command, and no LLM issues signal commands.
+NFR2
+Performance
+Route, ETA and corridor decisions are produced fast enough to be useful in real time; the
+dashboard updates every one to two seconds via WebSocket. Target latencies will be
+fixed after the first prototype is measured.
+NFR3
+Accuracy
+Prediction models are measured on held-out data with MAE, RMSE and classification
+accuracy, and compared with simple baselines.
+NFR4
+Reliability
+The system falls back safely to normal signal operation if data is missing, a module fails
+or a command is rejected.
+NFR5
+Security and privacy
+Sensitive data is processed locally, vehicles use anonymous IDs, access is role-based and
+audit logs are kept.
+NFR6
+Deployability
+Offline-first and on-premise; no dependency on a public cloud service.
+NFR7
+Modularity
+Data sources and signal control sit behind adapter interfaces, so switching between
+simulation and PSCA data means swapping an adapter.
+NFR8
+Reproducibility
+Experiments run on identical SUMO scenarios with repeated random seeds and tracked
+parameters.
+NFR9
+Usability
+Operators can see and understand each AI decision and the corridor status at a glance.
+NFR10
+Maintainability
+Open-source tools, versioned code, automated tests and documentation, especially for
+the safety layer.
+NFR11
+Resource limits
+Runs with pretrained models and CPU inference where GPU or software access is
+restricted.
+7. Core AI Functionalities
+The project rests on three core AI functionalities, built in this order, plus two advanced enhancements
+added only after the core corridor works.
+7.1 Core AI functionalities
+ID
+AI functionality
+Technique
+What it does
+Obj.
+AI-1
+Computer-vision
+traffic perception
+Fine-tuned YOLO detector,
+ByteTrack / BoT-SORT tracking,
+homography calibration
+Detects and tracks cars, buses, trucks,
+motorcycles and ambulances; derives count,
+flow, speed, density, queue length and
+congestion class.
+3
+
+
+=== PAGE 8 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 8
+ID
+AI functionality
+Technique
+What it does
+Obj.
+AI-2
+Machine-learning
+ETA and traffic
+prediction
+Linear / random-forest
+baselines, XGBoost / LightGBM,
+then LSTM / GRU
+Predicts ambulance ETA and short-term speed,
+volume, travel time and congestion.
+4
+AI-3
+Traffic-aware routing
+and hospital
+selection
+Time-dependent,
+traffic-weighted A* (after
+Dijkstra and A* baselines)
+Ranks hospitals by predicted arrival time and
+returns the best hospital-and-route pair, with
+dynamic re-routing.
+5
+7.2 Advanced AI enhancements
+ID
+AI functionality
+Technique
+What it does
+Obj.
+AI-4
+Reinforcement-learni
+ng signal control
+PPO in a Gymnasium
+environment wrapped around
+SUMO, plus OR-Tools
+constrained optimisation
+Investigates multi-objective signal control that
+reduces ambulance delay without excessive
+delay to normal traffic.
+6, 7
+AI-5
+Constrained agentic
+layer (optional)
+LangGraph Emergency Manager
+with Traffic, Route and Signal
+agents, local LLM
+Produces a high-level plan and operator-facing
+explanations; never issues signal commands.
+6
+All AI outputs pass through the rule-based safety layer before any signal command is produced.
+8. System Architecture and Core Modules
+The architecture is layered, offline-first and modular: data flows from authorised sources into a digital
+twin, through the AI engine and corridor planner, and through the safety layer before any signal command
+is produced.
+Figure 2: System architecture from data sources to validated signal commands.
+8.1 Architecture layers
+Layer
+Responsibility
+Data sources
+CCTV / ITMS traffic information, AVLS ambulance location, PTSC signal state, GIS road and
+intersection data (all subject to PSCA authorisation; simulation and public data otherwise).
+
+
+=== PAGE 9 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 9
+Layer
+Responsibility
+Ingestion and processing
+Secure API or feed intake, validation, GPS cleaning and map matching, traffic aggregation
+(FastAPI, Pandas / GeoPandas).
+Digital twin
+Live representation of the corridor: road graph, ambulance position, traffic state, signal state
+and incidents, mirrored in SUMO (PostgreSQL + PostGIS, Redis).
+AI engine
+ETA and traffic prediction, route optimisation, signal optimisation.
+Green-corridor engine
+Chooses intersections, timing and duration of priority and the restore plan.
+Safety and validation
+Rule-based checks on every command; rejects anything unsafe.
+Control layer
+SUMO signals (always) and PTSC interface (only if authorised, sandbox or read-only first).
+Dashboard
+Live map, ETA, signal states, AI decisions, metrics and operator oversight (React).
+8.2 Core modules
+A. Perception and traffic-state estimation. A pretrained YOLO detector is fine-tuned on approved or
+recorded footage; ByteTrack or BoT-SORT keeps vehicle IDs across frames; homography converts pixel
+movement into metres. If only processed detections are available, the same downstream modules
+consume them directly.
+B. Prediction. Models grow in complexity: linear and random-forest baselines, then XGBoost / LightGBM,
+then LSTM / GRU where enough time-series data exists. Targets are ambulance ETA, volume, speed, travel
+time and congestion level.
+C. Routing and hospital selection. A directed road graph whose edge cost is predicted travel time plus
+congestion, incident and signal-delay penalties. Dijkstra and A* come first, then a time-dependent
+traffic-weighted A*.
+D. Green-corridor engine. Once a route is fixed, the engine calculates expected arrival at every
+intersection and schedules signal actions ahead of it, following emergency vehicle preemption (EVP)
+principles.
+Intersection
+Ambulance ETA
+Action
+I1
+35 s
+Green priority now; hold until the ambulance has cleared.
+I2
+70 s
+Prepare: predict queue, shorten cross-street phase, clear approach.
+I3
+110 s
+Monitor and reserve a green slot.
+I4
+155 s
+Monitor and reserve a green slot.
+As the ambulance passes I1 it returns to normal operation, I2 goes green, and I3 and I4 move to
+preparation: a corridor that travels with the vehicle.
+E. Signal optimisation and reinforcement learning. OR-Tools constrained optimisation is the first
+controller. A PPO agent trained in a Gymnasium environment around SUMO (via libsumo) is then
+investigated.
+Element
+Design
+State
+Lane densities and queues, current phase and duration, ambulance distance and ETA, downstream
+density.
+Actions
+Keep phase, change phase, extend green, apply emergency priority (final set follows the actual signal
+configuration).
+Reward
+Negative ambulance delay, normal-traffic delay, queue length and unnecessary phase switching; positive
+emergency progress. A reward that only rewards ambulance movement is rejected because it can ruin all
+other traffic.
+F. Safety and validation layer. Every command is checked for valid phase, minimum green and
+maximum red, no conflicting greens, protected pedestrian phases, cross-traffic impact within limits and
+permitted emergency override. Rejected commands are logged; in live use, actions would also require
+operator authorisation.
+
+
+=== PAGE 10 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 10
+G. Constrained agentic layer. A LangGraph Emergency Manager coordinates Traffic, Route and Signal
+agents. The language model produces a high-level plan; optimisation or RL computes timings; the safety
+layer validates them. It is an enhancement added after the core corridor works.
+H. Operator dashboard. A React dashboard shows the ambulance, route and intersections on a live
+map, traffic state, signal status (green / preparing / normal), ETA, time saved versus baseline, AI decisions
+and system metrics.
+9. Research Questions and Evaluation Plan
+Six research questions are answered by comparing six control strategies on identical SUMO scenarios.
+9.1 Research questions
+ID
+Question
+RQ1
+Can traffic observations be used to build a sufficiently accurate traffic digital twin?
+RQ2
+Does traffic-aware emergency routing reduce ambulance travel time compared with shortest-distance routing?
+RQ3
+Does coordinated multi-intersection preemption reduce emergency waiting time?
+RQ4
+Does predictive signal preparation outperform reactive preemption?
+RQ5
+Can an RL controller reduce emergency delay without excessive extra delay to normal traffic?
+RQ6
+Can the system recover and re-route when traffic conditions change (for example an incident)?
+9.2 Evaluation plan
+Strategies are compared on off-peak, peak and incident scenarios, with repeated runs across random
+seeds.
+ID
+Strategy
+A
+Normal signals (baseline)
+B
+Traditional reactive emergency preemption
+C
+Traffic-aware routing only
+D
+Traffic-aware routing + green corridor
+E
+Prediction + green corridor
+F
+PPO + prediction + green corridor
+Metrics: ambulance travel time, ambulance waiting time, number of ambulance stops, normal-traffic
+delay, queue length, throughput, signal-switching count and recovery time. Prediction models are
+additionally evaluated with MAE, RMSE and classification accuracy on held-out data.
+10. Timeline, Assumptions and Risks
+The plan runs about six months and will be aligned with the university schedule. The core FYP is complete
+at the end of Phase 4 (Month 3); Phases 5 and 6 are enhancements, and Phase 7 covers evaluation and
+reporting.
+
+
+=== PAGE 11 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 11
+Figure 3: Six-month development timeline.
+10.1 Development phases
+Phase
+Timeline
+Activities
+Milestone
+1
+Month 1
+Domain study (traffic engineering, EVP, digital twins);
+requirements definition (with PSCA if confirmed);
+environment setup; GIS / PostGIS and data preparation.
+Technical requirements document
+2
+Months 1–2
+Computer-vision pipeline; traffic analytics (detection,
+tracking, speed, density).
+Vehicle counting, tracking and
+congestion levels
+3
+Month 2
+SUMO network of a Lahore corridor; TraCI control; one
+intersection + one ambulance + one signal.
+First demo: ambulance receives
+priority
+4
+Months 2–3
+Traffic-aware A*, hospital selection, multi-intersection
+corridor, safety layer, dashboard v1.
+Core milestone: end-to-end green
+corridor
+5
+Month 4
+ETA and traffic prediction (XGBoost, then LSTM).
+Predictive corridor
+6
+Month 5
+Gymnasium environment; PPO training; comparison with
+rule-based control; optional agentic layer; PSCA adapters;
+dashboard completion.
+RL controller and integrated
+system
+7
+Month 6
+Experiments A–F, analysis, documentation, thesis, final
+demonstration.
+Final report and demo
+10.2 Assumptions and risks
+Risk / assumption
+Mitigation
+PSCA collaboration or data access is not
+confirmed or not granted
+The system is fully functional in SUMO; public, historical, processed or synthetic
+data and adapters make PSCA data an add-on, not a prerequisite.
+No permission for direct signal control
+SUMO is the control target; commands are generated and validated, and
+demonstrated in a sandbox or read-only mode.
+Only processed detections, no raw video
+The pipeline accepts counts and speeds directly; the CV module runs on
+approved or recorded footage only.
+Limited GPU or restricted software
+Use pretrained models with fine-tuning, smaller architectures and CPU inference;
+keep the stack offline-first.
+Simulation-to-reality gap
+Calibrate SUMO with available observations, run sensitivity analysis and state
+the limitation explicitly.
+RL instability or unsafe policies
+Start with rule-based control; RL acts only through the safety layer;
+multi-objective reward.
+Scope creep
+Milestone-gated plan; prediction, RL and agentic AI are enhancements after the
+core corridor works.
+11. Target Users and Beneficiaries
+The system is designed for emergency-response and traffic-management staff, and benefits patients and
+the wider public through faster ambulance arrival. PSCA is the intended operating environment, not a
+confirmed partner.
+
+
+=== PAGE 12 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 12
+Group
+Role
+How they benefit
+PSCA / PPIC3 operators and
+traffic-management personnel
+Primary users of the
+dashboard
+See route, ETA and corridor status in one view; no manual
+signal-by-signal coordination; can oversee and authorise AI
+decisions; can handle several concurrent emergencies.
+Ambulance and
+emergency-response services
+(for example 1122 dispatchers
+and crews)
+Request and follow
+emergency responses
+Faster, traffic-aware routes and hospital selection; shorter
+travel and waiting time; fewer stops at intersections.
+Patients and their families
+Indirect beneficiaries
+Shorter response times for time-critical cases such as
+cardiac arrest, stroke and major trauma.
+Hospitals
+Indirect beneficiaries
+More predictable ambulance arrival times to prepare for
+incoming patients.
+General road users
+Affected by signal
+changes
+Corridor design limits extra delay, queue growth and
+recovery time for normal traffic.
+Researchers and students
+Read-only research users
+Reproducible SUMO digital twin and open evaluation setup
+for further traffic and AI research.
+12. Data Access, Security and Compliance
+If PSCA collaboration is confirmed, the team will first produce a technical requirements document that
+settles what is available and permitted. Until then, the project proceeds with public, historical or synthetic
+data.
+The requirements document will settle:
+•
+What traffic, camera, signal, GIS and emergency data are available.
+•
+Whether raw CCTV or processed detections are provided, and whether historical data can be used.
+•
+What GPU, software and network resources exist on PSCA systems.
+•
+Whether external APIs and AI coding tools are permitted.
+•
+Whether models or code may leave the PSCA environment.
+•
+What level of signal-system integration is authorised.
+Security principles:
+•
+All work involving PSCA data is carried out on PSCA-provided systems, in line with PSCA's data-security
+policy; no data is copied to personal devices.
+•
+Sensitive data (camera frames, internal network information, raw surveillance data) is processed
+locally and never sent to external services.
+•
+Emergency vehicles are identified by anonymous IDs; only location, speed, heading, timestamp and
+destination are needed.
+•
+The system is offline-first, uses role-based access (Admin, PSCA Operator, Traffic Operator, Research
+read-only) and keeps audit logs.
+•
+AI is advisory: all commands pass a safety validator and, in live use, operator authorisation.
+13. Cloud Platform and Deployment Approach
+The project does not plan to use a public cloud platform; it plans an on-premise, offline-first deployment
+on Linux (Ubuntu). This is a tentative design choice and is subject to PSCA requirements and to university
+and advisor guidance.
+•
+Why on-premise. PSCA's environment is expected to be restricted and offline-first, and sensitive
+camera and traffic data must not leave local systems. Cloud-only services are therefore treated as
+incompatible with the target environment.
+•
+What runs locally. Python services (FastAPI), PostgreSQL + PostGIS, Redis, SUMO, model training and
+inference, and the React dashboard served as static files behind Nginx with TLS.
+
+
+=== PAGE 13 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 13
+•
+During development. The SUMO digital twin and models are built and tested on team or university
+machines using public (OpenStreetMap), historical or synthetic data until PSCA access is confirmed. No
+sensitive PSCA data is used outside PSCA-approved systems.
+•
+If requirements change. If PSCA or the university later requires or permits a specific cloud or hosting
+platform, the modular, adapter-based design allows the deployment target to change without
+redesigning the AI components. Optional tools such as Docker will be used only if permitted.
+14. External Collaboration and Funding Status
+No external collaboration or funding is confirmed at this time. Everything related to PSCA, including its
+data, systems and a technical mentor, is proposed but not yet agreed.
+Item
+Current status
+University supervision
+Confirmed: Prof. Hafiz Ahsan Arshad (advisor) and Dr. Muhammad Husnain Ashfaq
+(co-advisor), UMT.
+PSCA collaboration
+Not confirmed. PSCA / PPIC3 is the proposed environment only.
+PSCA technical mentor
+Not confirmed.
+Access to PSCA data (CCTV, AVLS,
+PTSC, GIS)
+Not requested or not granted; any access would be subject to PSCA authorisation.
+External funding
+None confirmed. The project is planned to run on open-source tools and existing
+university resources.
+The project is designed to succeed without PSCA: the SUMO digital twin (Mode 2) is the main development
+and evaluation environment, and PSCA integration (Mode 1) is an optional extension. If collaboration is
+later confirmed, this section will be updated with its scope and terms.
+15. Tools and Technology
+Tools were chosen to be open-source, able to work offline in a restricted environment, proven in research
+and industry, explainable and testable, and learnable within a final-year project. Python is the common
+language for CV, ML, RL, simulation, GIS and the API.
+Area
+Technologies
+Role
+Frontend
+React + TypeScript, Vite, MapLibre GL JS, Tailwind CSS,
+Apache ECharts, WebSocket
+Operator dashboard with offline-capable
+live map, charts and real-time updates.
+Backend and
+services
+Python 3.11, FastAPI + Uvicorn, Pydantic, SQLAlchemy
++ GeoAlchemy2 + Alembic, Redis, JWT + role-based
+access, Nginx
+REST and WebSocket API, strict data
+validation, live state cache, authentication
+and on-premise TLS.
+Data, GIS and
+database
+PostgreSQL + PostGIS, OpenStreetMap + OSMnx /
+NetworkX, GeoPandas, Shapely, PyProj, Pandas,
+NumPy, PyArrow / Parquet
+Spatial queries, road graph, map
+matching, ETL and feature engineering.
+Computer vision
+OpenCV, Ultralytics YOLO (PyTorch), ByteTrack /
+BoT-SORT, homography calibration
+Vehicle detection, tracking, speed and
+queue measurement.
+Machine learning
+scikit-learn, XGBoost / LightGBM, PyTorch (LSTM / GRU)
+Baselines, ETA and traffic prediction,
+sequence forecasting.
+Simulation, routing,
+optimisation, RL
+SUMO, TraCI, libsumo, netedit / netconvert / duarouter,
+NetworkX (Dijkstra, A*), Google OR-Tools, Gymnasium
++ Stable-Baselines3 (PPO)
+Digital twin, routing, constrained signal
+optimisation and RL training.
+Agentic AI
+LangGraph, local / approved LLM (for example via
+Ollama or vLLM)
+Emergency Manager with Traffic, Route
+and Signal agents; plans and explanations
+only.
+Engineering and
+MLOps
+Git, MLflow (+ DVC optional), Docker (if permitted),
+pytest, Ruff, Black, MyPy, MkDocs, Postman, Linux
+(Ubuntu) on-premise
+Version control, experiment tracking,
+testing, documentation and runtime.
+Tools deliberately not chosen
+
+
+=== PAGE 14 ===
+AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System – FYP Proposal
+Page 14
+•
+Kafka, Kubernetes, microservices – unnecessary complexity; a modular monolith with Redis is enough.
+•
+MongoDB – a poor fit for spatial, relational road-network queries compared with PostGIS.
+•
+Transformer traffic models (at first) – data-hungry; XGBoost and LSTM are tested first.
+•
+LLM-controlled signals – unsafe; LLMs only plan and explain.
+•
+Cloud-only services – incompatible with a restricted, offline-first environment (Section 13).
+AI-assisted development
+AI coding assistants may be used to speed up code, tests and documentation, only if permitted by the
+university and, where relevant, PSCA, and never with raw PSCA surveillance data, camera frames or
+internal network details. The team reviews and understands every component.
+16. Expected Outcomes and Deliverables
+The target result is a measurable reduction in ambulance travel and waiting time versus the baselines,
+without disproportionate delay to normal traffic, in a system ready to connect to PSCA's infrastructure if
+and when authorised.
+•
+A calibrated SUMO digital twin of a Lahore corridor.
+•
+A traffic-analytics pipeline (detection, tracking, speed, density, congestion).
+•
+Trained ETA and traffic-prediction models with evaluation results.
+•
+Traffic-aware routing with dynamic re-routing, and a predictive multi-intersection green-corridor engine
+with a safety layer.
+•
+An RL controller, a constrained agentic coordination layer and a React operator dashboard.
+•
+A comparative evaluation of six strategies, a final report / thesis and a live demonstration.
+Summary
+Traffic and ambulance data → digital twin → AI prediction → dynamic route optimisation → green-corridor
+decision → safety validation → traffic-signal coordination. The system is proven first in SUMO and connects
+to PSCA's infrastructure only where access is authorised.
+
+

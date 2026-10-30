@@ -3,7 +3,6 @@ import React from 'react';
 export type PageId =
   | 'signin'
   | 'dashboard'
-  | 'emergency'
   | 'routing'
   | 'corridor'
   | 'perception'
@@ -22,7 +21,6 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate, onSignOut }) => {
   const icons: Record<string, string> = {
     dashboard: 'M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z',
-    emergency: 'M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
     routing: 'M5 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM19 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM7 17h6a3 3 0 0 0 0-6h-2a3 3 0 0 1 0-6h6',
     corridor: 'M9 2h6a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM12 7h.01M12 12h.01M12 17h.01',
     perception: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
@@ -37,8 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate, onSignOut 
     {
       label: 'OPERATIONS',
       items: [
-        { id: 'dashboard' as PageId, label: 'Command Center', badge: '1' },
-        { id: 'emergency' as PageId, label: 'New Emergency' },
+        { id: 'dashboard' as PageId, label: 'Command Center' },
         { id: 'routing' as PageId, label: 'Routing & Hospitals' },
         { id: 'corridor' as PageId, label: 'Green Corridor' },
       ],
@@ -164,22 +161,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate, onSignOut 
                   style={{ flex: 'none' }}
                 >
                   <path d={icons[it.id] || ''} />
-                </svg>
+                </svg                >
                 <span style={{ flex: 1 }}>{it.label}</span>
-                {it.badge && (
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '999px',
-                      background: 'rgba(255,122,122,.16)',
-                      color: '#FF7A7A',
-                    }}
-                  >
-                    {it.badge}
-                  </span>
-                )}
               </button>
             );
           })}

@@ -25,6 +25,13 @@ button {
   box-sizing: border-box;
 }
 
+.emergency-intake-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: start;
+  gap: 20px;
+}
+
 .lbl {
   font-size: 12px;
   font-weight: 600;
@@ -35,6 +42,12 @@ button {
 
 .mono {
   font-family: 'IBM Plex Mono', monospace;
+}
+
+@media (max-width: 900px) {
+  .emergency-intake-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
 }
 
 .chip {

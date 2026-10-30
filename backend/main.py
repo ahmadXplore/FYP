@@ -314,9 +314,9 @@ def create_emergency(req: EmergencyCreateRequest):
 # 4. Multi-Criteria Hospital Routing (A*)
 # -------------------------------------------------------------
 @app.get("/api/routing")
-def get_routing():
+def get_routing(emergency_type: str = Query(default="Cardiac arrest")):
     inc = corridor_telemetry["incident"]
-    hospitals = routing_engine.calculate_routes(incident=inc)
+    hospitals = routing_engine.calculate_routes(incident=inc, emergency_type=emergency_type)
     return {"hospitals": hospitals, "incident_active": inc}
 
 # -------------------------------------------------------------

@@ -1,11 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { PageId } from '../components/Sidebar';
+import { apiService, EmergencyRecord, HospitalRoute } from '../services/api';
+import { EmergencyIntakeView, EmergencySource } from './EmergencyIntakeView';
 
 interface DashboardViewProps {
+  initialEmergency?: EmergencyRecord | null;
   onNavigate: (page: PageId) => void;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ initialEmergency = null, onNavigate }) => {
+  const [emergencies, setEmergencies] = useState<EmergencyRecord[]>(initialEmergency ? [initialEmergency] : []);
+  const [selectedEmergencyId, setSelectedEmergencyId] = useState<string | null>(initialEmergency?.id ?? null);
+  const [isLoadingEmergencies, setIsLoadingEmergencies] = useState(true);
+  const [emergencyError, setEmergencyError] = useState('');
+  const [showIntake, setShowIntake] = useState(false);
+  const [intakeSource, setIntakeSource] = useState<EmergencySource>('1122');
+  const [corridorPlan, setCorridorPlan] = useState<HospitalRoute | null>(null);
+  const [corridorGeneratedFor, setCorridorGeneratedFor] = useState<string | null>(null);
+  const [corridorError, setCorridorError] = useState('');
   const [t, setT] = useState(0.24);
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
@@ -14,6 +26,63 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   const [cong, setCong] = useState(true);
   const [alt, setAlt] = useState(true);
   const [hold, setHold] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const fetchEmergencies = async () => {
+      try {
+        const response = await apiService.getEmergencies();
+        if (active && response) {
+          const records = initialEmergency
+            ? [initialEmergency, ...response.emergencies.filter((emergency) => emergency.id !== initialEmergency.id)]
+            : response.emergencies;
+          setEmergencies(records);
+          const current = initialEmergency || records.find((emergency) => emergency.status === 'ACTIVE' || emergency.status === 'DISPATCHED')
+            || records[0];
+          setSelectedEmergencyId(current?.id ?? null);
+        }
+      } catch (requestError) {
+        if (active) {
+          setEmergencyError(requestError instanceof Error ? requestError.message : 'Could not load emergencies.');
+        }
+      } finally {
+        if (active) setIsLoadingEmergencies(false);
+      }
+    };
+    fetchEmergencies();
+    return () => { active = false; };
+  }, [initialEmergency]);
+
+  const selectedEmergency = emergencies.find((emergency) => emergency.id === selectedEmergencyId) || null;
+  const activeEmergencyCount = emergencies.filter((emergency) => emergency.status === 'ACTIVE' || emergency.status === 'DISPATCHED').length;
+  const emergencySource = (notes?: string) => notes?.startsWith('Source: 1122')
+    ? '1122'
+    : notes?.startsWith('Source: System anomaly')
+      ? 'System anomaly'
+      : 'Operator entry';
+
+  const handleEmergencyCreated = (emergency: EmergencyRecord) => {
+    setEmergencies((current) => [emergency, ...current.filter((item) => item.id !== emergency.id)]);
+    setSelectedEmergencyId(emergency.id);
+    setShowIntake(false);
+    setCorridorPlan(null);
+    setCorridorGeneratedFor(null);
+    setCorridorError('');
+  };
+
+  const handleGenerateCorridor = async () => {
+    if (!selectedEmergency) return;
+    setCorridorError('');
+    try {
+      const response = await apiService.getRouting();
+      if (!response?.hospitals.length) throw new Error('No route or hospital recommendation is available.');
+      const recommendedHospital = response.hospitals.find((hospital) => hospital.rank === 1) || response.hospitals[0];
+      setCorridorPlan(recommendedHospital);
+      setCorridorGeneratedFor(selectedEmergency.id);
+    } catch (requestError) {
+      setCorridorError(requestError instanceof Error ? requestError.message : 'Could not generate the corridor plan.');
+    }
+  };
 
   // Animation tick loop
   useEffect(() => {
@@ -134,6 +203,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   const rem = eta(L);
   const base = rem * 1.3;
   const cleared = js.filter((j) => j.state === 'cleared').length;
+  const corridorReady = selectedEmergency && corridorGeneratedFor === selectedEmergency.id;
 
   const checks = [
     { text: 'Valid phase sequence', ok: true },
@@ -157,12 +227,131 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
 
   return (
     <main style={{ padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {showIntake && (
+        <EmergencyIntakeView
+          initialSource={intakeSource}
+          onCreated={handleEmergencyCreated}
+          onCancel={() => setShowIntake(false)}
+        />
+      )}
+
+      <section style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} aria-label="Emergency command center">
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <span className="lbl">Emergency operations</span>
+            <h2 style={{ margin: 0, fontSize: '21px', fontWeight: 700 }}>Incoming and active emergencies</h2>
+          </div>
+          <button
+            type="button"
+            className="btn-p"
+            onClick={() => {
+              setIntakeSource('1122');
+              setShowIntake(true);
+            }}
+          >
+            Register 1122 call
+          </button>
+        </div>
+
+        {emergencyError && <div role="alert" className="card" style={{ color: '#FF7A7A' }}>{emergencyError}</div>}
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'stretch' }}>
+          <section className="card" style={{ flex: '2 1 420px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }} aria-label="Selected emergency details">
+            {selectedEmergency ? (
+              <>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <span className="lbl">Selected emergency · {emergencySource(selectedEmergency.notes)}</span>
+                    <h3 style={{ margin: 0, fontSize: '20px' }}>{selectedEmergency.type}</h3>
+                    <span className="mono" style={{ fontSize: '13px', color: '#A3B2CA' }}>{selectedEmergency.id} · reported {selectedEmergency.time}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <span className={`chip ${selectedEmergency.pc}`}>{selectedEmergency.priority}</span>
+                    <span className={`chip ${selectedEmergency.sc}`}>{selectedEmergency.status}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+                  {[
+                    { label: 'Incident location', value: selectedEmergency.location },
+                    { label: 'Assigned ambulance', value: selectedEmergency.amb },
+                    { label: 'Destination hospital', value: selectedEmergency.dest },
+                  ].map((detail) => (
+                    <div key={detail.label} style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '12px', borderRadius: '10px', background: '#0F1A2E' }}>
+                      <span className="lbl">{detail.label}</span>
+                      <span style={{ fontSize: '14px', fontWeight: 600 }}>{detail.value || 'Not specified'}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {selectedEmergency.notes && (
+                  <div style={{ fontSize: '13px', lineHeight: 1.5, color: '#A3B2CA' }}>
+                    <b style={{ color: '#E8EEF8' }}>Operator notes: </b>{selectedEmergency.notes.replace(/^Source: (1122|System anomaly)\s*·?\s*/, '') || 'None'}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+                  <button type="button" className="btn-p" onClick={handleGenerateCorridor}>
+                    {corridorReady ? 'Refresh green corridor' : 'Generate green corridor'}
+                  </button>
+                  {corridorReady && (
+                    <button type="button" className="btn-g" onClick={() => onNavigate('corridor')}>Open corridor planner</button>
+                  )}
+                  {corridorError && <span role="alert" style={{ fontSize: '13px', color: '#FF7A7A' }}>{corridorError}</span>}
+                </div>
+                {corridorReady && corridorPlan && (
+                  <div role="status" style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(52,211,168,.08)', border: '1px solid rgba(52,211,168,.3)', fontSize: '13px', lineHeight: 1.5 }}>
+                    <b style={{ color: '#34D3A8' }}>Corridor plan ready for {selectedEmergency.id}.</b>
+                    {' '}Recommended destination: {corridorPlan.name}; estimated route time {Math.ceil(corridorPlan.total_sec / 60)} min. The signal plan is available in the corridor planner.
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '130px', justifyContent: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '18px' }}>{isLoadingEmergencies ? 'Loading emergency feed…' : 'No emergency selected'}</h3>
+                <span style={{ color: '#A3B2CA', fontSize: '14px' }}>Register an incoming 1122 call or review a system anomaly to start an emergency.</span>
+              </div>
+            )}
+          </section>
+
+          <section className="card" style={{ flex: '1 1 280px', minWidth: 0, maxHeight: '320px', alignSelf: 'flex-start', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '12px' }} aria-label="Emergency feed">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Emergency feed</h3>
+              <span className="chip c-gray">{isLoadingEmergencies ? 'Loading' : `${activeEmergencyCount} active`}</span>
+            </div>
+            {emergencies.length > 0 ? (
+              <div style={{ maxHeight: '232px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
+                {emergencies.slice(0, 5).map((emergency) => (
+                  <button
+                    type="button"
+                    key={emergency.id}
+                    onClick={() => {
+                      setSelectedEmergencyId(emergency.id);
+                      setCorridorError('');
+                    }}
+                    aria-pressed={selectedEmergencyId === emergency.id}
+                    style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 12px', borderRadius: '9px', border: selectedEmergencyId === emergency.id ? '1px solid #34D3A8' : '1px solid #243350', background: selectedEmergencyId === emergency.id ? 'rgba(52,211,168,.08)' : '#0F1A2E', color: '#E8EEF8', textAlign: 'left', cursor: 'pointer' }}
+                  >
+                    <span className="mono" style={{ minWidth: '76px', fontSize: '12px' }}>{emergency.id}</span>
+                    <span style={{ flex: '1 1 140px', fontSize: '13px' }}>{emergency.type} · {emergency.location}</span>
+                    <span className={`chip ${emergency.pc}`}>{emergency.priority}</span>
+                    <span className={`chip ${emergency.sc}`}>{emergency.status}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <span style={{ fontSize: '13px', color: '#A3B2CA' }}>{isLoadingEmergencies ? 'Retrieving 1122 and operator reports…' : 'No recorded emergencies yet.'}</span>
+            )}
+          </section>
+        </div>
+      </section>
+
       {/* Key Indicators */}
       <section style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }} aria-label="Key indicators">
         <div className="card" style={{ flex: '1 1 220px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <span className="lbl">Active emergency</span>
-          <span className="mono" style={{ fontSize: '34px', fontWeight: 600, lineHeight: 1 }}>1</span>
-          <span style={{ fontSize: '13px', color: '#A3B2CA' }}>AMB-017 · Priority P1 · cardiac arrest</span>
+          <span className="mono" style={{ fontSize: '34px', fontWeight: 600, lineHeight: 1 }}>{activeEmergencyCount}</span>
+          <span style={{ fontSize: '13px', color: '#A3B2CA' }}>{selectedEmergency ? `${selectedEmergency.amb} · Priority ${selectedEmergency.priority} · ${selectedEmergency.type}` : 'No active ambulance dispatch'}</span>
         </div>
 
         <div className="card" style={{ flex: '1 1 220px', display: 'flex', flexDirection: 'column', gap: '8px' }}>

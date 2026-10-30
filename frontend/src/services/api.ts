@@ -14,6 +14,18 @@ export interface EmergencyRecord {
   notes?: string;
 }
 
+export interface CreatedEmergency {
+  id: string;
+  type: string;
+  priority: string;
+  ambulance: string;
+  destination: string;
+  caller_location: string;
+  status: string;
+  notes?: string;
+  time_str: string;
+}
+
 export interface HospitalRoute {
   id: string;
   name: string;
@@ -144,34 +156,26 @@ export const apiService = {
   },
 
   async getEmergencies(): Promise<{ emergencies: EmergencyRecord[] } | null> {
-    try {
-      const res = await fetch(`${API_BASE}/emergencies`);
-      return await res.json();
-    } catch {
-      return null;
-    }
+    const res = await fetch(`${API_BASE}/emergencies`);
+    if (!res.ok) throw new Error(`Could not load emergencies (${res.status})`);
+    return await res.json();
   },
 
-  async createEmergency(data: { location: string; type: string; priority: string; ambulance: string; destination?: string; notes?: string }) {
-    try {
-      const res = await fetch(`${API_BASE}/emergencies`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      return await res.json();
-    } catch {
-      return null;
-    }
+  async createEmergency(data: { location: string; type: string; priority: string; ambulance: string; destination?: string; notes?: string }): Promise<{ status: string; emergency: CreatedEmergency }> {
+    const res = await fetch(`${API_BASE}/emergencies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`Could not create emergency (${res.status})`);
+    return await res.json();
   },
 
-  async getRouting(): Promise<{ hospitals: HospitalRoute[]; incident_active: boolean } | null> {
-    try {
-      const res = await fetch(`${API_BASE}/routing`);
-      return await res.json();
-    } catch {
-      return null;
-    }
+  async getRouting(emergencyType?: string): Promise<{ hospitals: HospitalRoute[]; incident_active: boolean }> {
+    const query = emergencyType ? `?emergency_type=${encodeURIComponent(emergencyType)}` : '';
+    const res = await fetch(`${API_BASE}/routing${query}`);
+    if (!res.ok) throw new Error(`Could not load hospital route predictions (${res.status})`);
+    return await res.json();
   },
 
   async scrubCorridor(t: number, lead: number, hold: number) {

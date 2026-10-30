@@ -6,9 +6,26 @@ interface RoutingViewProps {
   onNavigate: (page: PageId) => void;
 }
 
+interface RankedHospital {
+  id: string;
+  name: string;
+  dist: string;
+  tags: string;
+  cap: string;
+  capCls: string;
+  travel: number;
+  cong: number;
+  signal: number;
+  short: number;
+  rank: number;
+  insight: string;
+  total: number;
+}
+
 export const RoutingView: React.FC<RoutingViewProps> = ({ onNavigate }) => {
   const [selId, setSelId] = useState('jinnah');
   const [incidentActive, setIncidentActive] = useState(false);
+  const [routeError, setRouteError] = useState('');
 
   const fmt = (sec: number) => {
     const m = Math.floor(sec / 60), s = sec % 60;
@@ -21,7 +38,7 @@ export const RoutingView: React.FC<RoutingViewProps> = ({ onNavigate }) => {
     mayo: { aware: '70,440 230,440 230,320 230,200 230,90', shortPts: '70,440 230,440 230,320 230,200 230,90' },
   };
 
-  const DEFAULT_H = [
+  const DEFAULT_H: RankedHospital[] = [
     { id: 'jinnah', name: 'Jinnah Hospital', dist: '5.3', tags: 'Cardiac · Trauma', cap: 'ER beds available', capCls: 'c-green', travel: 340, cong: 45, signal: 35, short: 530, rank: 1, insight: 'Longer on the map but faster in time: the traffic-aware route avoids the congested western approach.' },
     { id: 'services', name: 'Services Hospital', dist: '4.8', tags: 'Cardiac', cap: 'ER beds limited', capCls: 'c-amber', travel: 380, cong: 60, signal: 65, short: 545, rank: 2, insight: 'The direct road crosses a congested segment, so the route stays on the southern arterial.' },
     { id: 'mayo', name: 'Mayo Hospital', dist: '4.1', tags: 'Trauma · Neurology', cap: 'ER beds available', capCls: 'c-green', travel: 300, cong: 190, signal: 90, short: 580, rank: 3, insight: 'Nearest by distance but slowest in time. Both routes are the same here, and the congestion penalty dominates.' },
@@ -31,10 +48,10 @@ export const RoutingView: React.FC<RoutingViewProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     const fetchRouting = async () => {
-      const res = await apiService.getRouting();
-      if (res && res.hospitals) {
+      try {
+        const res = await apiService.getRouting();
         setIncidentActive(!!res.incident_active);
-        const mapped = res.hospitals.map((h: any) => ({
+        const mapped: RankedHospital[] = res.hospitals.map((h) => ({
           id: h.id,
           name: h.name,
           dist: String(h.dist),
@@ -50,6 +67,8 @@ export const RoutingView: React.FC<RoutingViewProps> = ({ onNavigate }) => {
           total: h.total_sec,
         }));
         setH(mapped);
+      } catch (requestError) {
+        setRouteError(requestError instanceof Error ? requestError.message : 'Could not load live routing predictions.');
       }
     };
     fetchRouting();
@@ -75,6 +94,7 @@ export const RoutingView: React.FC<RoutingViewProps> = ({ onNavigate }) => {
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Hospital ranking</h2>
             <span className="chip c-gray">EM-0412 · P1</span>
           </div>
+          {routeError && <div role="alert" style={{ fontSize: '13px', color: '#F6B93B' }}>{routeError} Showing sample estimates.</div>}
 
           <div role="group" aria-label="Choose hospital" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {H.map((h) => {

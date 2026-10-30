@@ -3,7 +3,6 @@ import { Sidebar, PageId } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { SignInView } from './pages/SignInView';
 import { DashboardView } from './pages/DashboardView';
-import { EmergencyView } from './pages/EmergencyView';
 import { RoutingView } from './pages/RoutingView';
 import { CorridorView } from './pages/CorridorView';
 import { PerceptionView } from './pages/PerceptionView';
@@ -12,14 +11,17 @@ import { SafetyView } from './pages/SafetyView';
 import { TwinView } from './pages/TwinView';
 import { EvaluationView } from './pages/EvaluationView';
 import { AdminView } from './pages/AdminView';
+import { EmergencyIntakeView } from './pages/EmergencyIntakeView';
+import { EmergencyRecord } from './services/api';
 
 export function App() {
   const [activePage, setActivePage] = useState<PageId>('dashboard');
+  const [hasStartedEmergency, setHasStartedEmergency] = useState(false);
+  const [initialEmergency, setInitialEmergency] = useState<EmergencyRecord | null>(null);
 
   const pageHeaders: Record<PageId, { title: string; subtitle: string }> = {
     signin: { title: 'Sign in', subtitle: 'GreenCorridor AI authentication' },
-    dashboard: { title: 'Command Center', subtitle: 'Live emergency corridor monitoring · AMB-017 en route' },
-    emergency: { title: 'New Emergency', subtitle: 'Register an incident and let the system plan route, hospital and corridor' },
+    dashboard: { title: 'Command Center', subtitle: 'Incoming 1122 calls, system alerts and active corridor operations' },
     routing: { title: 'Routing and Hospitals', subtitle: 'Hospitals ranked by predicted arrival time, not by distance' },
     corridor: { title: 'Green Corridor Planner', subtitle: 'One plan for the whole route: which signals, when to prepare, how long to hold' },
     perception: { title: 'Traffic Perception', subtitle: 'Vehicle detection, tracking and congestion level from camera feeds' },
@@ -29,6 +31,20 @@ export function App() {
     evaluation: { title: 'Evaluation', subtitle: 'Six control strategies compared on identical SUMO scenarios' },
     admin: { title: 'Admin and Audit', subtitle: 'Users, role-based access, data handling and the full decision log' },
   };
+
+  if (!hasStartedEmergency) {
+    return (
+      <EmergencyIntakeView
+        initialSource="1122"
+        presentation="page"
+        onCreated={(emergency) => {
+          setInitialEmergency(emergency);
+          setHasStartedEmergency(true);
+          setActivePage('dashboard');
+        }}
+      />
+    );
+  }
 
   if (activePage === 'signin') {
     return <SignInView onSignIn={() => setActivePage('dashboard')} />;
@@ -54,8 +70,7 @@ export function App() {
           subtitle={currentHeader.subtitle}
         />
 
-        {activePage === 'dashboard' && <DashboardView onNavigate={(p) => setActivePage(p)} />}
-        {activePage === 'emergency' && <EmergencyView onNavigate={(p) => setActivePage(p)} />}
+        {activePage === 'dashboard' && <DashboardView initialEmergency={initialEmergency} onNavigate={(p) => setActivePage(p)} />}
         {activePage === 'routing' && <RoutingView onNavigate={(p) => setActivePage(p)} />}
         {activePage === 'corridor' && <CorridorView onNavigate={(p) => setActivePage(p)} />}
         {activePage === 'perception' && <PerceptionView />}

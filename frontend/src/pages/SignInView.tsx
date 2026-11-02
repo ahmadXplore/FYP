@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Shield, LayoutDashboard, Sliders, Eye, ArrowRight } from 'lucide-react';
 
 interface SignInViewProps {
   onSignIn: (role: string) => void;
@@ -10,10 +11,30 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
   const [password, setPassword] = useState('••••••••');
 
   const roles = [
-    { id: 'admin', name: 'Admin', desc: 'Users, data adapters, audit log and full configuration.', icon: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z' },
-    { id: 'operator', name: 'PSCA Operator', desc: 'Monitor emergencies, review AI decisions, authorise signal actions.', icon: 'M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z' },
-    { id: 'traffic', name: 'Traffic Operator', desc: 'Corridor status, traffic state and signal plans.', icon: 'M9 2h6a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM12 7h.01M12 12h.01M12 17h.01' },
-    { id: 'research', name: 'Research (read-only)', desc: 'Digital twin, experiments and evaluation results only.', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' }
+    {
+      id: 'admin',
+      name: 'System Administrator',
+      desc: 'Users, data adapters, tamper-evident audit log and complete safety configuration.',
+      icon: Shield,
+    },
+    {
+      id: 'operator',
+      name: 'PSCA PPIC3 Operator',
+      desc: 'Live emergency monitoring, route review, safety validator approval and preemption override.',
+      icon: LayoutDashboard,
+    },
+    {
+      id: 'traffic',
+      name: 'Traffic Operations Officer',
+      desc: 'Signal network phase coordination, camera perception feeds and queue recovery status.',
+      icon: Sliders,
+    },
+    {
+      id: 'research',
+      name: 'Academic Evaluator (Read-only)',
+      desc: 'SUMO digital twin benchmarks, empirical RQ metrics and comparative evaluation data.',
+      icon: Eye,
+    },
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -22,100 +43,207 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexWrap: 'wrap', background: '#0B1220' }}>
-      {/* Left Column: FYP Presentation */}
+    <div style={{ minHeight: '100vh', display: 'flex', flexWrap: 'wrap', background: 'var(--bg)' }}>
+      {/* Left Column: Official Public Sector Context */}
       <div
         style={{
-          flex: '1 1 560px',
+          flex: '1 1 540px',
           minWidth: 0,
           boxSizing: 'border-box',
-          padding: '56px 64px',
+          padding: '48px 56px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          gap: '40px',
-          background: '#0F1A2E',
+          gap: '36px',
+          background: 'var(--navy-800)',
+          color: '#FFFFFF',
+          borderRight: '1px solid var(--border-subtle)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <svg width="40" height="40" viewBox="0 0 40 40" role="img" aria-label="GreenCorridor AI logo">
-            <rect x="2" y="2" width="36" height="36" rx="10" fill="#34D3A8" />
-            <path d="M9 20h22" stroke="#06231C" strokeWidth="3" strokeLinecap="round" />
-            <circle cx="13" cy="20" r="3.4" fill="#06231C" />
-            <circle cx="20" cy="20" r="3.4" fill="#06231C" />
-            <circle cx="27" cy="20" r="3.4" fill="#06231C" />
-          </svg>
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-            <span style={{ fontWeight: 700, fontSize: '18px' }}>GreenCorridor AI</span>
-            <span style={{ fontSize: '12px', color: '#A3B2CA' }}>Emergency vehicle priority layer</span>
+        {/* Brand header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '4px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid var(--accent-gold)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--accent-gold)',
+            }}
+          >
+            <Shield size={20} strokeWidth={1.5} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
+            <span style={{ fontWeight: 700, fontSize: '16px', letterSpacing: '0.01em' }}>
+              Emergency Green Corridor System
+            </span>
+            <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.75)' }}>
+              Dynamic Priority and Automated Route Clearance
+            </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '640px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.12em', color: '#34D3A8' }}>
-            FINAL YEAR PROJECT · UMT LAHORE
+        {/* Core mission statement */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '22px', maxWidth: '600px' }}>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              color: 'var(--accent-gold)',
+              textTransform: 'uppercase',
+            }}
+          >
+            Final Year Project · UMT Lahore · Proposed for PSCA PPIC3
           </span>
-          <h1 style={{ margin: 0, fontSize: '46px', lineHeight: 1.12, fontWeight: 700, letterSpacing: '-0.02em' }}>
-            A moving green corridor for every emergency.
+          <h1
+            style={{
+              margin: 0,
+              fontSize: '36px',
+              lineHeight: 1.2,
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              color: '#FFFFFF',
+            }}
+          >
+            Automated Green Wave Preemption for Emergency Response Vehicles.
           </h1>
-          <p style={{ margin: 0, fontSize: '17px', lineHeight: 1.55, color: '#A3B2CA' }}>
-            An AI decision layer that routes the ambulance, predicts when it reaches each junction, and prepares
-            signals ahead of it, with every command checked by a safety validator.
+          <p
+            style={{
+              margin: 0,
+              fontSize: '15px',
+              lineHeight: 1.6,
+              color: 'rgba(255, 255, 255, 0.85)',
+            }}
+          >
+            An authoritative, safety-governed traffic priority layer. Computes dynamic route arrival predictions,
+            prepares intersections ahead of the emergency vehicle, and validates every signal actuation against
+            Punjab Safe Cities Authority safety constraints.
           </p>
 
-          <svg viewBox="0 0 600 170" style={{ width: '100%', maxWidth: '600px', height: 'auto' }} role="img" aria-label="Corridor strip illustration">
-            <rect x="20" y="82" width="560" height="14" rx="7" fill="#243350" />
-            <rect x="20" y="82" width="190" height="14" rx="7" fill="#34D3A8" opacity="0.35" />
-            <rect x="8" y="64" width="46" height="50" rx="10" fill="#0B1220" stroke="#FF7A7A" strokeWidth="2" />
-            <path d="M31 78v22M20 89h22" stroke="#FF7A7A" strokeWidth="4" strokeLinecap="round" />
-            <circle cx="31" cy="89" r="22" fill="none" stroke="#FF7A7A" strokeWidth="2" className="pulse" />
-            <g fontFamily="'IBM Plex Sans', sans-serif" fontSize="11" fontWeight="700" textAnchor="middle">
-              <circle cx="170" cy="89" r="17" fill="#34D3A8" /><text x="170" y="93" fill="#06231C">I1</text>
-              <circle cx="285" cy="89" r="17" fill="#F6B93B" /><text x="285" y="93" fill="#2A1E00">I2</text>
-              <circle cx="400" cy="89" r="17" fill="#7F90AB" /><text x="400" y="93" fill="#0B1220">I3</text>
-              <circle cx="500" cy="89" r="17" fill="#7F90AB" /><text x="500" y="93" fill="#0B1220">I4</text>
-              <rect x="548" y="64" width="46" height="50" rx="10" fill="#1E3A5F" /><text x="571" y="95" fontSize="20" fill="#E8EEF8">H</text>
-              <text x="170" y="52" fill="#34D3A8">GREEN</text>
-              <text x="285" y="52" fill="#F6B93B">PREPARING</text>
-              <text x="400" y="52" fill="#A3B2CA">MONITOR</text>
-              <text x="500" y="52" fill="#A3B2CA">MONITOR</text>
-              <g fontFamily="'IBM Plex Mono', monospace" fontWeight="500" fill="#E8EEF8">
-                <text x="170" y="132">ETA 12 s</text><text x="285" y="132">ETA 40 s</text><text x="400" y="132">ETA 85 s</text><text x="500" y="132">ETA 130 s</text>
+          {/* Corridor Strip Diagram (clean, flat, high-contrast, no glow) */}
+          <div
+            style={{
+              padding: '16px',
+              borderRadius: '4px',
+              background: 'rgba(6, 22, 45, 0.6)',
+              border: '1px solid rgba(223, 227, 232, 0.2)',
+            }}
+          >
+            <svg
+              viewBox="0 0 600 130"
+              style={{ width: '100%', height: 'auto' }}
+              role="img"
+              aria-label="Schematic representation of moving green corridor across 4 junctions to hospital"
+            >
+              {/* Arterial roadway */}
+              <rect x="20" y="60" width="560" height="12" rx="2" fill="var(--navy-600)" />
+              {/* Active green segment */}
+              <rect x="20" y="60" width="160" height="12" rx="2" fill="var(--success)" opacity="0.6" />
+
+              {/* Ambulance marker at start */}
+              <g transform="translate(24 46)">
+                <rect width="28" height="28" rx="2" fill="var(--danger)" stroke="#FFFFFF" strokeWidth="1.5" />
+                <path d="M14 6v16M6 14h16" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="square" />
               </g>
-            </g>
-          </svg>
+
+              {/* Intersections I1 to I4 */}
+              <g fontFamily="'IBM Plex Mono', monospace" fontSize="11" fontWeight="600" textAnchor="middle">
+                {/* I1 - Green */}
+                <circle cx="170" cy="66" r="14" fill="var(--success)" stroke="#FFFFFF" strokeWidth="1.5" />
+                <text x="170" y="70" fill="#FFFFFF">I1</text>
+                <text x="170" y="38" fill="var(--success)" fontFamily="'Public Sans', sans-serif" fontSize="10" fontWeight="700">GREEN</text>
+                <text x="170" y="98" fill="rgba(255,255,255,0.7)" fontSize="10">ETA 0:12</text>
+
+                {/* I2 - Preparing */}
+                <circle cx="285" cy="66" r="14" fill="var(--warning)" stroke="#FFFFFF" strokeWidth="1.5" />
+                <text x="285" y="70" fill="#0B0C0C">I2</text>
+                <text x="285" y="38" fill="var(--warning)" fontFamily="'Public Sans', sans-serif" fontSize="10" fontWeight="700">PREPARING</text>
+                <text x="285" y="98" fill="rgba(255,255,255,0.7)" fontSize="10">ETA 0:40</text>
+
+                {/* I3 - Monitoring */}
+                <circle cx="400" cy="66" r="14" fill="var(--text-secondary)" stroke="#FFFFFF" strokeWidth="1.5" />
+                <text x="400" y="70" fill="#FFFFFF">I3</text>
+                <text x="400" y="38" fill="rgba(255,255,255,0.7)" fontFamily="'Public Sans', sans-serif" fontSize="10" fontWeight="700">MONITOR</text>
+                <text x="400" y="98" fill="rgba(255,255,255,0.7)" fontSize="10">ETA 1:25</text>
+
+                {/* I4 - Monitoring */}
+                <circle cx="500" cy="66" r="14" fill="var(--text-secondary)" stroke="#FFFFFF" strokeWidth="1.5" />
+                <text x="500" y="70" fill="#FFFFFF">I4</text>
+                <text x="500" y="38" fill="rgba(255,255,255,0.7)" fontFamily="'Public Sans', sans-serif" fontSize="10" fontWeight="700">MONITOR</text>
+                <text x="500" y="98" fill="rgba(255,255,255,0.7)" fontSize="10">ETA 2:10</text>
+
+                {/* Hospital destination */}
+                <rect x="546" y="48" width="34" height="36" rx="2" fill="var(--navy-700)" stroke="#FFFFFF" strokeWidth="1.5" />
+                <text x="563" y="72" fontSize="18" fontWeight="700" fill="#FFFFFF">H</text>
+                <text x="563" y="98" fill="rgba(255,255,255,0.7)" fontSize="10">HOSPITAL</text>
+              </g>
+            </svg>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: '#A3B2CA', lineHeight: 1.5 }}>
-          <span>Muhammad Ahmad Asif · Muhammad Taimoor Nasir · Muhammad Usman Danial</span>
-          <span>Advisor: Prof. Hafiz Ahsan Arshad · Co-advisor: Dr. Muhammad Husnain Ashfaq</span>
+        {/* Project Authors and Institutional Line */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            fontSize: '12px',
+            color: 'rgba(255, 255, 255, 0.75)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.15)',
+            paddingTop: '16px',
+          }}
+        >
+          <span style={{ fontWeight: 600, color: '#FFFFFF' }}>
+            Project Team: Muhammad Ahmad Asif · Muhammad Taimoor Nasir · Muhammad Usman Danial
+          </span>
+          <span>Advisors: Prof. Hafiz Ahsan Arshad · Dr. Muhammad Husnain Ashfaq</span>
+          <span style={{ color: 'var(--accent-gold)' }}>Department of Computer Science, UMT Lahore</span>
         </div>
       </div>
 
-      {/* Right Column: Sign In Role Selector */}
+      {/* Right Column: Console Access */}
       <div
         style={{
-          flex: '1 1 460px',
+          flex: '1 1 440px',
           minWidth: 0,
           boxSizing: 'border-box',
-          padding: '56px 40px',
+          padding: '48px 40px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          background: 'var(--surface)',
         }}
       >
         <form
           onSubmit={handleSubmit}
-          style={{ width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', gap: '24px' }}
+          style={{
+            width: '100%',
+            maxWidth: '440px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+          }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>Sign in</h2>
-            <span style={{ fontSize: '14px', color: '#A3B2CA' }}>Choose a role to preview what each user sees.</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span className="lbl">Control Room Authentication</span>
+            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: 'var(--text)' }}>
+              Operator Console Sign In
+            </h2>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Select an operational role to access assigned telemetry and control privileges.
+            </span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} role="group" aria-label="Role">
+          {/* Role selector buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} role="group" aria-label="Operational Role">
             {roles.map((r) => {
               const on = role === r.id;
+              const IconComp = r.icon;
               return (
                 <button
                   key={r.id}
@@ -129,67 +257,99 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
                     else setUsername('research.viewer');
                   }}
                   aria-pressed={on}
+                  style={{
+                    padding: '10px 12px',
+                    gap: '12px',
+                    borderRadius: '4px',
+                  }}
                 >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={on ? '#34D3A8' : '#A3B2CA'}
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    style={{ flex: 'none', marginTop: '1px' }}
+                  <div
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '2px',
+                      background: on ? 'var(--navy-800)' : 'var(--surface-alt)',
+                      color: on ? '#FFFFFF' : 'var(--text-secondary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
                   >
-                    <path d={r.icon} />
-                  </svg>
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontWeight: 600, fontSize: '15px' }}>{r.name}</span>
-                    <span style={{ fontSize: '13px', color: '#A3B2CA', lineHeight: 1.4 }}>{r.desc}</span>
-                  </span>
+                    <IconComp size={16} strokeWidth={1.5} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 }}>
+                    <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>
+                      {r.name}
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.35 }}>
+                      {r.desc}
+                    </span>
+                  </div>
                 </button>
               );
             })}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label htmlFor="u" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Username</label>
+          {/* Credentials input */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label htmlFor="u" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>
+                Operator ID / Username
+              </label>
               <input
                 id="u"
                 className="field"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                required
               />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label htmlFor="p" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Password</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label htmlFor="p" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>
+                Security Access Token / Password
+              </label>
               <input
                 id="p"
                 className="field"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
           </div>
 
+          {/* Submit button */}
           <button type="submit" className="btn-p" style={{ width: '100%' }}>
-            Sign in to Command Center
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#06231C" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
+            <span>Sign In to Operational Console</span>
+            <ArrowRight size={16} strokeWidth={1.5} />
           </button>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '12px', color: '#A3B2CA' }}>
-            <span style={{ padding: '4px 10px', border: '1px solid #243350', borderRadius: '999px' }}>Offline-first</span>
-            <span style={{ padding: '4px 10px', border: '1px solid #243350', borderRadius: '999px' }}>Role-based access</span>
-            <span style={{ padding: '4px 10px', border: '1px solid #243350', borderRadius: '999px' }}>Every action audit-logged</span>
+          {/* Security & Audit guarantees */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '6px',
+              fontSize: '11px',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <span style={{ padding: '3px 8px', border: '1px solid var(--border-subtle)', borderRadius: '2px', background: 'var(--surface-alt)' }}>
+              On-Premise Isolated
+            </span>
+            <span style={{ padding: '3px 8px', border: '1px solid var(--border-subtle)', borderRadius: '2px', background: 'var(--surface-alt)' }}>
+              Role-Based Access
+            </span>
+            <span style={{ padding: '3px 8px', border: '1px solid var(--border-subtle)', borderRadius: '2px', background: 'var(--surface-alt)' }}>
+              All Actions Audit-Logged
+            </span>
           </div>
-          <span style={{ fontSize: '12px', color: '#7F90AB', lineHeight: 1.5 }}>
-            Prototype only: no real authentication. PSCA is the proposed environment, not a confirmed partner.
+
+          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+            PSCA PPIC3 is the proposed evaluation deployment environment. Simulation and synthetic telemetry only.
           </span>
         </form>
       </div>

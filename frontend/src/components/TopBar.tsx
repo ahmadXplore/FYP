@@ -1,122 +1,190 @@
 import React from 'react';
+import { Menu, Shield, Moon, Sun, CheckCircle2, SlidersHorizontal } from 'lucide-react';
 
 interface TopBarProps {
   title: string;
   subtitle: string;
+  category?: string;
+  darkMode?: boolean;
+  onToggleDark?: () => void;
+  onToggleSidebar?: () => void;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ title, subtitle }) => {
+export const TopBar: React.FC<TopBarProps> = ({
+  title,
+  subtitle,
+  darkMode = false,
+  onToggleDark,
+  onToggleSidebar,
+}) => {
   return (
-    <header
-      style={{
-        width: '100%',
-        boxSizing: 'border-box',
-        minHeight: '76px',
-        padding: '14px 32px',
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '12px 24px',
-        background: '#0B1220',
-        borderBottom: '1px solid #243350',
-        fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
-        color: '#E8EEF8',
-      }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-        <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700, letterSpacing: '-0.01em' }}>
-          {title}
-        </h1>
-        <span style={{ fontSize: '13px', color: '#A3B2CA' }}>{subtitle}</span>
-      </div>
+    <>
+      <header
+        style={{
+          width: '100%',
+          boxSizing: 'border-box',
+          minHeight: '64px',
+          padding: '12px 32px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          background: 'var(--navy-800)',
+          color: '#FFFFFF',
+        }}
+      >
+        {/* Left: Mobile menu toggle + Page title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
+          {onToggleSidebar && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-label="Toggle Navigation Menu"
+              className="md:hidden"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '36px',
+                height: '36px',
+                borderRadius: '4px',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                color: '#FFFFFF',
+                cursor: 'pointer',
+              }}
+            >
+              <Menu size={18} strokeWidth={1.5} />
+            </button>
+          )}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            height: '32px',
-            padding: '0 12px',
-            borderRadius: '999px',
-            background: 'rgba(246,185,59,.12)',
-            border: '1px solid rgba(246,185,59,.35)',
-            color: '#F6B93B',
-            fontSize: '12px',
-            fontWeight: 600,
-          }}
-        >
-          Prototype · sample data
-        </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: '20px',
+                fontWeight: 600,
+                letterSpacing: '-0.01em',
+                color: '#FFFFFF',
+              }}
+            >
+              {title}
+            </h1>
+            <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.75)' }}>
+              {subtitle}
+            </span>
+          </div>
+        </div>
 
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            height: '32px',
-            padding: '0 12px',
-            borderRadius: '999px',
-            background: '#121C2F',
-            border: '1px solid #243350',
-            color: '#E8EEF8',
-            fontSize: '12px',
-            fontWeight: 600,
-          }}
-        >
-          <span
+        {/* Right Chrome Controls */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+          {/* Mode Switcher / Sandbox Indicator */}
+          <div
             style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: '#34D3A8',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '30px',
+              padding: '0 10px',
+              borderRadius: '2px',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#FFFFFF',
+              letterSpacing: '0.02em',
             }}
-          ></span>
-          All modules healthy
-        </span>
-
-        <span
-          aria-label="Notifications"
-          style={{
-            position: 'relative',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '44px',
-            height: '44px',
-            borderRadius: '10px',
-            background: '#121C2F',
-            border: '1px solid #243350',
-            color: '#A3B2CA',
-          }}
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
           >
-            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" />
-          </svg>
-          <span
+            <SlidersHorizontal size={13} strokeWidth={1.5} style={{ color: 'var(--accent-gold)' }} />
+            <span>SUMO TraCI</span>
+            <span style={{ opacity: 0.5 }}>|</span>
+            <span style={{ color: 'rgba(255,255,255,0.7)' }}>PTSC Sandbox</span>
+          </div>
+
+          {/* System Status: Live / Simulated */}
+          <div
             style={{
-              position: 'absolute',
-              top: '10px',
-              right: '11px',
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: '#FF7A7A',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '30px',
+              padding: '0 10px',
+              borderRadius: '2px',
+              background: 'rgba(221, 170, 1, 0.12)',
+              border: '1px solid rgba(221, 170, 1, 0.4)',
+              color: '#FFDF6D',
+              fontSize: '11px',
+              fontWeight: 600,
             }}
-          ></span>
-        </span>
-      </div>
-    </header>
+          >
+            <span
+              className="live-dot"
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: '#FFDD00',
+              }}
+            />
+            <span>SIMULATED · LIVE FEED</span>
+          </div>
+
+          {/* User Role Chip */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '30px',
+              padding: '0 10px',
+              borderRadius: '2px',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: '#FFFFFF',
+              fontSize: '11px',
+              fontWeight: 600,
+            }}
+          >
+            <Shield size={13} strokeWidth={1.5} style={{ color: 'var(--accent-gold)' }} />
+            <span>PSCA Officer</span>
+          </div>
+
+          {/* Operations Mode Toggle */}
+          {onToggleDark && (
+            <button
+              type="button"
+              onClick={onToggleDark}
+              aria-label={darkMode ? 'Switch to Light Mode' : 'Switch to Operations Mode (Dark)'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '30px',
+                borderRadius: '2px',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: '#FFFFFF',
+                cursor: 'pointer',
+              }}
+            >
+              {darkMode ? <Sun size={15} strokeWidth={1.5} /> : <Moon size={15} strokeWidth={1.5} />}
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Thin 3px Gold Rule Beneath Topbar */}
+      <div
+        className="top-bar-gold-rule"
+        style={{
+          height: '3px',
+          background: 'var(--accent-gold)',
+          width: '100%',
+        }}
+        aria-hidden="true"
+      />
+    </>
   );
 };

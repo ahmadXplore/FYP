@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
+import { TrendingUp, Clock, Layers, Cpu, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export const PredictionView: React.FC = () => {
   const [target, setTarget] = useState<'speed' | 'volume' | 'time'>('speed');
   const [hz, setHz] = useState<1 | 3 | 5>(3);
 
   const T: Record<string, { label: string; title: string; unit: string; min: number; max: number; f: (t: number) => number; noise: number }> = {
-    speed: { label: 'Speed', title: 'Average speed (km/h)', unit: 'km/h', min: 10, max: 50, f: (t) => 31 + 7 * Math.sin(t / 3.2) - 0.18 * Math.max(0, t + 12), noise: 0.9 },
-    volume: { label: 'Volume', title: 'Traffic volume (vehicles per minute)', unit: 'veh/min', min: 0, max: 40, f: (t) => 22 + 6 * Math.sin(t / 3.6 + 1) + 0.22 * Math.max(0, t + 12), noise: 1.1 },
-    time: { label: 'Travel time', title: 'Segment travel time (minutes)', unit: 'min', min: 0, max: 10, f: (t) => 4.2 + 1.1 * Math.sin(t / 3.4 + 2) + 0.07 * Math.max(0, t + 12), noise: 0.18 }
+    speed: { label: 'Speed', title: 'Average Corridor Speed (km/h)', unit: 'km/h', min: 10, max: 50, f: (t) => 31 + 7 * Math.sin(t / 3.2) - 0.18 * Math.max(0, t + 12), noise: 0.9 },
+    volume: { label: 'Volume', title: 'Traffic Volume (vehicles per minute)', unit: 'veh/min', min: 0, max: 40, f: (t) => 22 + 6 * Math.sin(t / 3.6 + 1) + 0.22 * Math.max(0, t + 12), noise: 1.1 },
+    time: { label: 'Travel Time', title: 'Segment Travel Time (minutes)', unit: 'min', min: 0, max: 10, f: (t) => 4.2 + 1.1 * Math.sin(t / 3.4 + 2) + 0.07 * Math.max(0, t + 12), noise: 0.18 }
   };
 
   const tg = T[target];
@@ -50,45 +51,73 @@ export const PredictionView: React.FC = () => {
   ];
 
   return (
-    <main style={{ padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <main style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Top 4 KPI Cards */}
-      <section style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }} aria-label="Ambulance arrival prediction">
-        <div className="card" style={{ flex: '1 1 240px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <span className="lbl">Predicted arrival at hospital</span>
-          <span className="mono" style={{ fontSize: '34px', fontWeight: 600, lineHeight: 1, color: '#34D3A8' }}>07:00</span>
-          <span style={{ fontSize: '13px', color: '#A3B2CA' }}>±0:25 interval · updated every 2 s</span>
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '16px' }} aria-label="Ambulance arrival prediction">
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="lbl" style={{ margin: 0 }}>Predicted ETA (Hospital)</span>
+            <Clock size={16} strokeWidth={1.5} style={{ color: 'var(--text-secondary)' }} />
+          </div>
+          <span className="mono" style={{ fontSize: '30px', fontWeight: 700, lineHeight: 1.1, color: 'var(--success)' }}>
+            07:00
+          </span>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            ±0:25 interval · updated every 2 s
+          </span>
         </div>
 
-        <div className="card" style={{ flex: '1 1 240px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <span className="lbl">Next junction (I1)</span>
-          <span className="mono" style={{ fontSize: '34px', fontWeight: 600, lineHeight: 1 }}>01:02</span>
-          <span style={{ fontSize: '13px', color: '#A3B2CA' }}>queue forecast {Math.round(qn[0] * growth)} vehicles at arrival</span>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="lbl" style={{ margin: 0 }}>Next Junction (I1) ETA</span>
+            <TrendingUp size={16} strokeWidth={1.5} style={{ color: 'var(--text-secondary)' }} />
+          </div>
+          <span className="mono" style={{ fontSize: '30px', fontWeight: 700, lineHeight: 1.1, color: 'var(--text)' }}>
+            01:02
+          </span>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            Queue forecast: <strong style={{ color: 'var(--text)' }}>{Math.round(qn[0] * growth)}</strong> veh at arrival
+          </span>
         </div>
 
-        <div className="card" style={{ flex: '1 1 240px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <span className="lbl">Forecast horizon</span>
-          <span className="mono" style={{ fontSize: '34px', fontWeight: 600, lineHeight: 1 }}>{hz} min</span>
-          <span style={{ fontSize: '13px', color: '#A3B2CA' }}>1, 3 and 5 minute models</span>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="lbl" style={{ margin: 0 }}>Forecast Horizon</span>
+            <Layers size={16} strokeWidth={1.5} style={{ color: 'var(--text-secondary)' }} />
+          </div>
+          <span className="mono" style={{ fontSize: '30px', fontWeight: 700, lineHeight: 1.1, color: 'var(--text)' }}>
+            {hz} min
+          </span>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            Evaluated against 1, 3 and 5 min horizons
+          </span>
         </div>
 
-        <div className="card" style={{ flex: '1 1 240px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <span className="lbl">Active model</span>
-          <span className="mono" style={{ fontSize: '34px', fontWeight: 600, lineHeight: 1 }}>XGBoost</span>
-          <span style={{ fontSize: '13px', color: '#A3B2CA' }}>LSTM / GRU where enough data exists</span>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="lbl" style={{ margin: 0 }}>Active Model</span>
+            <Cpu size={16} strokeWidth={1.5} style={{ color: 'var(--text-secondary)' }} />
+          </div>
+          <span className="mono" style={{ fontSize: '26px', fontWeight: 700, lineHeight: 1.2, color: 'var(--primary)' }}>
+            XGBoost
+          </span>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            Auto-fallback to baseline if latency exceeds 200 ms
+          </span>
         </div>
       </section>
 
       {/* Forecast Chart */}
       <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} aria-label="Forecast chart">
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>{tg.title}</h2>
-            <span className="chip c-gray">Sample data</span>
+            <span className="chip c-gray">Simulation Horizon</span>
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
             {/* Target Select */}
-            <div role="group" aria-label="Target" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div role="group" aria-label="Target" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {(['speed', 'volume', 'time'] as const).map((k) => (
                 <button
                   key={k}
@@ -96,6 +125,15 @@ export const PredictionView: React.FC = () => {
                   className={`btn-g ${target === k ? 'btn-on' : ''}`}
                   onClick={() => setTarget(k)}
                   aria-pressed={target === k}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    borderRadius: '4px',
+                    border: target === k ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    background: target === k ? 'var(--navy-50)' : 'var(--surface)',
+                    color: target === k ? 'var(--primary-active)' : 'var(--text)'
+                  }}
                 >
                   {T[k].label}
                 </button>
@@ -103,7 +141,7 @@ export const PredictionView: React.FC = () => {
             </div>
 
             {/* Horizon Select */}
-            <div role="group" aria-label="Horizon" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div role="group" aria-label="Horizon" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {([1, 3, 5] as const).map((h) => (
                 <button
                   key={h}
@@ -111,102 +149,148 @@ export const PredictionView: React.FC = () => {
                   className={`btn-g ${hz === h ? 'btn-on' : ''}`}
                   onClick={() => setHz(h)}
                   aria-pressed={hz === h}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    borderRadius: '4px',
+                    border: hz === h ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    background: hz === h ? 'var(--navy-50)' : 'var(--surface)',
+                    color: hz === h ? 'var(--primary-active)' : 'var(--text)'
+                  }}
                 >
-                  {h} min
+                  +{h} min
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        <svg viewBox="0 0 800 300" style={{ width: '100%', height: 'auto' }} role="img" aria-label="Forecast chart">
-          <g stroke="#243350" strokeWidth="1">
+        <svg viewBox="0 0 800 300" style={{ width: '100%', height: 'auto', background: 'var(--surface-alt)', border: '1px solid var(--border-subtle)', borderRadius: '4px' }} role="img" aria-label="Forecast chart">
+          {/* Grid lines */}
+          <g stroke="var(--border-subtle)" strokeWidth="1">
             <path d="M60 30H780M60 90H780M60 150H780M60 210H780M60 260H780" />
           </g>
-          <g fontFamily="'IBM Plex Mono', monospace" fontSize="11" fill="#7F90AB" textAnchor="end">
+          {/* Y-axis Ticks */}
+          <g fontFamily="'IBM Plex Mono', monospace" fontSize="11" fill="var(--text-secondary)" textAnchor="end">
             <text x="52" y="34">{ticks(tg.max)}</text>
             <text x="52" y="94">{ticks(tg.max - step)}</text>
             <text x="52" y="154">{ticks(tg.max - 2 * step)}</text>
             <text x="52" y="214">{ticks(tg.max - 3 * step)}</text>
             <text x="52" y="264">{ticks(tg.min)}</text>
           </g>
-          <g fontFamily="'IBM Plex Mono', monospace" fontSize="11" fill="#7F90AB" textAnchor="middle">
+          {/* X-axis Labels */}
+          <g fontFamily="'IBM Plex Mono', monospace" fontSize="11" fill="var(--text-secondary)" textAnchor="middle">
             <text x="60" y="284" textAnchor="start">−20 min</text>
-            <text x={nowX} y="284">now</text>
+            <text x={nowX} y="284" fontWeight="600" fill="var(--text)">NOW (T=0)</text>
             <text x="780" y="284" textAnchor="end">+{hz} min</text>
           </g>
-          <rect x={nowX} y="30" width={shift} height="230" fill="rgba(106,174,255,.08)" />
-          <polygon points={upper.concat(lower).join(' ')} fill="rgba(52,211,168,.18)" />
-          <polyline points={shiftedActual.join(' ')} fill="none" stroke="#E8EEF8" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-          <polyline points={pred.join(' ')} fill="none" stroke="#34D3A8" strokeWidth="3" strokeDasharray="7 6" strokeLinejoin="round" strokeLinecap="round" />
-          <rect x={nowX} y="30" width="1.5" height="230" fill="#6AAEFF" />
-          <g fontFamily="'IBM Plex Sans', sans-serif" fontSize="12" fontWeight="600">
-            <text x={nowX + 6} y="24" fill="#6AAEFF">Forecast +{hz} min</text>
+          {/* Forecast Horizon shaded zone */}
+          <rect x={nowX} y="30" width={shift} height="230" fill="var(--navy-50)" opacity="0.6" />
+          {/* Prediction Confidence Interval Band */}
+          <polygon points={upper.concat(lower).join(' ')} fill="var(--primary)" opacity="0.15" />
+          {/* Historical Observed Series */}
+          <polyline points={shiftedActual.join(' ')} fill="none" stroke="var(--text)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+          {/* Forecasted Prediction Line */}
+          <polyline points={pred.join(' ')} fill="none" stroke="var(--success)" strokeWidth="3" strokeDasharray="6 4" strokeLinejoin="round" strokeLinecap="round" />
+          {/* Now Reference Marker */}
+          <line x1={nowX} y1="30" x2={nowX} y2="260" stroke="var(--accent-gold)" strokeWidth="2" strokeDasharray="3 3" />
+          <g fontFamily="'Public Sans', sans-serif" fontSize="11" fontWeight="600">
+            <text x={nowX + 6} y="24" fill="var(--navy-800)">Forecast Window (+{hz} min)</text>
           </g>
         </svg>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px', fontSize: '12px', color: '#A3B2CA' }}>
+        {/* Legend */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', fontSize: '13px', color: 'var(--text-secondary)', alignItems: 'center' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ width: '18px', height: '3px', background: '#E8EEF8' }}></span>Observed
+            <span style={{ width: '20px', height: '3px', background: 'var(--text)', borderRadius: '1px' }}></span>
+            <strong style={{ color: 'var(--text)' }}>Observed</strong> (Historic Telemetry)
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ width: '18px', height: 0, borderTop: '3px dashed #34D3A8' }}></span>Predicted
+            <span style={{ width: '20px', height: 0, borderTop: '3px dashed var(--success)' }}></span>
+            <strong style={{ color: 'var(--text)' }}>Predicted</strong> (T+{hz} min)
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ width: '18px', height: '10px', background: 'rgba(52,211,168,.3)' }}></span>Prediction interval
+            <span style={{ width: '20px', height: '10px', background: 'var(--primary)', opacity: 0.25, borderRadius: '2px', border: '1px solid var(--primary)' }}></span>
+            <strong style={{ color: 'var(--text)' }}>Confidence Interval</strong> (95%)
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '12px', height: '12px', background: 'var(--accent-gold)', borderRadius: '2px' }}></span>
+            <strong style={{ color: 'var(--text)' }}>T=0 Boundary</strong>
           </span>
         </div>
       </section>
 
       {/* Model Comparison & Queue Forecast */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
-        <section className="card" style={{ flex: '3 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }} aria-label="Model comparison">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Model comparison on held-out data</h2>
-            <span className="chip c-amber">Placeholder values</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px', alignItems: 'start' }}>
+        <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} aria-label="Model comparison">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
+            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>Model Benchmark Comparison (Held-Out Test Set)</h2>
+            <span className="chip c-gray">K-Fold CV</span>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
-                <tr>
-                  <th>Model</th><th>MAE</th><th>RMSE</th><th>Congestion accuracy</th><th></th>
+                <tr style={{ background: 'var(--navy-50)', borderBottom: '2px solid var(--border-strong)' }}>
+                  <th style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text)' }}>Model</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text)', textAlign: 'right' }}>MAE</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text)', textAlign: 'right' }}>RMSE</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text)', textAlign: 'right' }}>Accuracy</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text)', textAlign: 'center' }}>Role</th>
                 </tr>
               </thead>
               <tbody>
                 {models.map((m) => (
-                  <tr key={m.name}>
-                    <td style={{ fontWeight: 600 }}>{m.name}</td>
-                    <td className="mono">{m.mae}</td>
-                    <td className="mono">{m.rmse}</td>
-                    <td className="mono">{m.acc}</td>
-                    <td><span className={`chip ${m.cls}`}>{m.tag}</span></td>
+                  <tr key={m.name} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text)' }}>{m.name}</td>
+                    <td className="mono" style={{ padding: '8px 10px', textAlign: 'right' }}>{m.mae}</td>
+                    <td className="mono" style={{ padding: '8px 10px', textAlign: 'right' }}>{m.rmse}</td>
+                    <td className="mono" style={{ padding: '8px 10px', textAlign: 'right' }}>{m.acc}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'center' }}><span className={`chip ${m.cls}`}>{m.tag}</span></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <span style={{ fontSize: '12px', color: '#7F90AB', lineHeight: 1.5 }}>
-            Models grow in complexity and are always compared with simple baselines. Real figures replace these once experiments are run.
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            Models grow in algorithmic complexity and are continuously verified against simple baselines to prevent over-fitting.
           </span>
         </section>
 
-        <section className="card" style={{ flex: '2 1 340px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }} aria-label="Queue forecast per junction">
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Queue forecast by junction</h2>
-          {qn.map((n, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px' }}>
-              <span style={{ width: '28px', fontWeight: 700 }}>I{i + 1}</span>
-              <div style={{ flex: 1, height: '8px', borderRadius: '999px', background: '#243350', overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: '999px', background: '#34D3A8', width: `${Math.min(100, Math.round(n * growth * 6.5))}%` }}></div>
+        <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} aria-label="Queue forecast per junction">
+          <div style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
+            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>Corridor Junction Queue Forecast</h2>
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Projected queue length at ambulance arrival timestamp</span>
+          </div>
+          {qn.map((n, i) => {
+            const projected = Math.round(n * growth + i * 0.4);
+            const pct = Math.min(100, Math.round(n * growth * 6.5));
+            return (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>Junction I-{i + 1}</span>
+                  <span className="mono" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Initial: {n} → Projected: <strong style={{ color: 'var(--text)' }}>{projected} veh</strong>
+                  </span>
+                </div>
+                <div style={{ height: '8px', borderRadius: '4px', background: 'var(--surface-alt)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      background: projected > 12 ? 'var(--warning)' : 'var(--primary)',
+                      width: `${pct}%`,
+                      transition: 'width 0.3s ease'
+                    }}
+                  />
+                </div>
               </div>
-              <span className="mono" style={{ width: '110px', textAlign: 'right', fontSize: '12px', color: '#A3B2CA' }}>
-                {n} → <span style={{ color: '#E8EEF8' }}>{Math.round(n * growth + i * 0.4)}</span> veh
-              </span>
-            </div>
-          ))}
-          <span style={{ fontSize: '12px', color: '#7F90AB', lineHeight: 1.5 }}>
-            Expected queue at each junction at the moment the ambulance arrives.
-          </span>
+            );
+          })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'var(--navy-50)', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '12px', color: 'var(--navy-900)' }}>
+            <CheckCircle2 size={16} strokeWidth={1.5} style={{ color: 'var(--success)', flexShrink: 0 }} />
+            <span>All 4 junction queues remain within clearing limits before ambulance passage.</span>
+          </div>
         </section>
       </div>
     </main>

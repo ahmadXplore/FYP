@@ -1,4 +1,19 @@
 import React from 'react';
+import {
+  LayoutDashboard,
+  Navigation,
+  GitBranch,
+  Video,
+  TrendingUp,
+  ShieldCheck,
+  Layers,
+  BarChart3,
+  Sliders,
+  LogOut,
+  Shield,
+  Sun,
+  Moon
+} from 'lucide-react';
 
 export type PageId =
   | 'signin'
@@ -16,249 +31,303 @@ interface SidebarProps {
   active: PageId;
   onNavigate: (page: PageId) => void;
   onSignOut: () => void;
+  darkMode?: boolean;
+  onToggleDark?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate, onSignOut }) => {
-  const icons: Record<string, string> = {
-    dashboard: 'M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z',
-    routing: 'M5 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM19 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM7 17h6a3 3 0 0 0 0-6h-2a3 3 0 0 1 0-6h6',
-    corridor: 'M9 2h6a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM12 7h.01M12 12h.01M12 17h.01',
-    perception: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
-    prediction: 'M3 17l6-6 4 4 8-8M15 7h6v6',
-    safety: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4',
-    twin: 'M12 2l9 5v10l-9 5-9-5V7zM12 12l9-5M12 12v10M12 12L3 7',
-    evaluation: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
-    admin: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',
-  };
-
+export const Sidebar: React.FC<SidebarProps> = ({
+  active,
+  onNavigate,
+  onSignOut,
+  darkMode = false,
+  onToggleDark,
+}) => {
   const groups = [
     {
-      label: 'OPERATIONS',
+      label: 'Operations',
       items: [
-        { id: 'dashboard' as PageId, label: 'Command Center' },
-        { id: 'routing' as PageId, label: 'Routing & Hospitals' },
-        { id: 'corridor' as PageId, label: 'Green Corridor' },
+        { id: 'dashboard' as PageId, label: 'Command Center', icon: LayoutDashboard },
+        { id: 'routing' as PageId, label: 'Routing & Hospitals', icon: Navigation },
+        { id: 'corridor' as PageId, label: 'Green Corridor', icon: GitBranch },
       ],
     },
     {
-      label: 'INTELLIGENCE',
+      label: 'Intelligence',
       items: [
-        { id: 'perception' as PageId, label: 'Traffic Perception' },
-        { id: 'prediction' as PageId, label: 'Prediction' },
+        { id: 'perception' as PageId, label: 'Traffic Perception', icon: Video },
+        { id: 'prediction' as PageId, label: 'Prediction', icon: TrendingUp },
       ],
     },
     {
-      label: 'ASSURANCE',
+      label: 'Assurance',
       items: [
-        { id: 'safety' as PageId, label: 'Safety & Validation' },
-        { id: 'twin' as PageId, label: 'Digital Twin' },
-        { id: 'evaluation' as PageId, label: 'Evaluation' },
+        { id: 'safety' as PageId, label: 'Safety & Validation', icon: ShieldCheck },
+        { id: 'twin' as PageId, label: 'Digital Twin', icon: Layers },
+        { id: 'evaluation' as PageId, label: 'Evaluation', icon: BarChart3 },
       ],
     },
     {
-      label: 'SYSTEM',
+      label: 'Administration',
       items: [
-        { id: 'admin' as PageId, label: 'Admin & Audit' },
+        { id: 'admin' as PageId, label: 'Admin & Audit', icon: Sliders },
       ],
     },
   ];
 
   return (
-    <nav
-      aria-label="Main"
+    <aside
+      aria-label="Navigation Sidebar"
       style={{
         width: '100%',
         minHeight: '100vh',
         boxSizing: 'border-box',
-        background: '#0F1A2E',
-        borderRight: '1px solid #243350',
-        padding: '20px 14px',
+        background: darkMode ? 'var(--navy-900)' : 'var(--surface)',
+        borderRight: '1px solid var(--border-subtle)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '22px',
-        fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
-        color: '#E8EEF8',
+        fontFamily: "'Public Sans', Inter, system-ui, sans-serif",
+        color: 'var(--text)',
       }}
     >
-      {/* Brand */}
-      <button
-        type="button"
-        onClick={() => onNavigate('dashboard')}
+      {/* Top Branding Section */}
+      <div
         style={{
+          background: 'var(--navy-800)',
+          color: '#FFFFFF',
+          padding: '16px 18px',
+          borderBottom: '3px solid var(--accent-gold)',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
-          padding: '4px 8px',
-          color: 'inherit',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          textAlign: 'left',
+          gap: '12px',
         }}
       >
-        <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
-          <rect x="2" y="2" width="36" height="36" rx="10" fill="#34D3A8" />
-          <path d="M9 20h22" stroke="#06231C" stroke-width="3" stroke-linecap="round" />
-          <circle cx="13" cy="20" r="3.4" fill="#06231C" />
-          <circle cx="20" cy="20" r="3.4" fill="#06231C" />
-          <circle cx="27" cy="20" r="3.4" fill="#06231C" />
-        </svg>
-        <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-          <span style={{ fontWeight: 700, fontSize: '16px' }}>GreenCorridor AI</span>
-          <span style={{ fontSize: '11px', color: '#A3B2CA' }}>Emergency priority layer</span>
-        </span>
-      </button>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '4px',
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(221, 170, 1, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--accent-gold)',
+            flexShrink: 0,
+          }}
+        >
+          <Shield size={18} strokeWidth={1.5} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
+          <span style={{ fontWeight: 700, fontSize: '13px', letterSpacing: '0.01em' }}>
+            Emergency Green
+          </span>
+          <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)' }}>
+            Corridor System
+          </span>
+        </div>
+      </div>
 
-      {/* Nav Groups */}
-      {groups.map((g) => (
-        <div key={g.label} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span
+      {/* Navigation Group Items */}
+      <div
+        style={{
+          flex: 1,
+          padding: '16px 10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+          overflowY: 'auto',
+        }}
+      >
+        {groups.map((g) => (
+          <div key={g.label} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: 'var(--text-secondary)',
+                padding: '0 12px 6px',
+              }}
+            >
+              {g.label}
+            </span>
+            {g.items.map((it) => {
+              const on = it.id === active;
+              const IconComponent = it.icon;
+              return (
+                <button
+                  key={it.id}
+                  type="button"
+                  onClick={() => onNavigate(it.id)}
+                  aria-current={on ? 'page' : undefined}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    minHeight: '40px',
+                    boxSizing: 'border-box',
+                    padding: '0 12px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    borderLeft: on ? '3px solid var(--accent-gold)' : '3px solid transparent',
+                    fontSize: '13px',
+                    fontWeight: on ? 600 : 500,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    background: on
+                      ? darkMode
+                        ? 'var(--surface-raised)'
+                        : 'var(--navy-50)'
+                      : 'transparent',
+                    color: on
+                      ? darkMode
+                        ? '#FFFFFF'
+                        : 'var(--navy-900)'
+                      : 'var(--text-secondary)',
+                    transition: 'background-color 0.15s ease, color 0.15s ease',
+                    width: '100%',
+                  }}
+                >
+                  <IconComponent
+                    size={18}
+                    strokeWidth={1.5}
+                    style={{
+                      flex: 'none',
+                      color: on
+                        ? 'var(--accent-gold)'
+                        : 'var(--text-secondary)',
+                    }}
+                  />
+                  <span style={{ flex: 1 }}>{it.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Footer Controls & User Status */}
+      <div
+        style={{
+          padding: '12px 14px',
+          borderTop: '1px solid var(--border-subtle)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          background: darkMode ? 'var(--surface)' : 'var(--surface-alt)',
+        }}
+      >
+        {/* Operations Mode toggle */}
+        {onToggleDark && (
+          <button
+            type="button"
+            onClick={onToggleDark}
+            aria-pressed={darkMode}
             style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              letterSpacing: '0.1em',
-              color: '#7F90AB',
-              padding: '0 10px 6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '8px 10px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-subtle)',
+              background: 'var(--surface)',
+              color: 'var(--text)',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: 'pointer',
             }}
           >
-            {g.label}
-          </span>
-          {g.items.map((it) => {
-            const on = it.id === active;
-            return (
-              <button
-                key={it.id}
-                type="button"
-                onClick={() => onNavigate(it.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  minHeight: '44px',
-                  boxSizing: 'border-box',
-                  padding: '0 12px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  background: on ? 'rgba(52,211,168,.14)' : 'transparent',
-                  color: on ? '#E8EEF8' : '#A3B2CA',
-                  transition: 'all 0.12s ease',
-                }}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke={on ? '#34D3A8' : '#A3B2CA'}
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  style={{ flex: 'none' }}
-                >
-                  <path d={icons[it.id] || ''} />
-                </svg                >
-                <span style={{ flex: 1 }}>{it.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      ))}
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {darkMode ? <Sun size={15} strokeWidth={1.5} /> : <Moon size={15} strokeWidth={1.5} />}
+              <span>{darkMode ? 'Standard Light' : 'Operations Mode'}</span>
+            </span>
+            <span className="chip c-gray" style={{ height: '18px', fontSize: '10px' }}>
+              {darkMode ? 'DARK' : 'LIGHT'}
+            </span>
+          </button>
+        )}
 
-      {/* Footer Info & Sign out */}
-      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* System Simulation State Pill */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '10px 12px',
-            borderRadius: '10px',
-            background: '#121C2F',
-            border: '1px solid #243350',
-            fontSize: '12px',
-            color: '#A3B2CA',
+            padding: '8px 10px',
+            borderRadius: '4px',
+            background: 'var(--surface)',
+            border: '1px solid var(--border-subtle)',
+            fontSize: '11px',
+            color: 'var(--text-secondary)',
           }}
         >
           <span
+            className="live-dot"
             style={{
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              background: '#34D3A8',
-              flex: 'none',
+              background: 'var(--success)',
+              flexShrink: 0,
             }}
-          ></span>
-          <span>Mode 2 · Digital twin (SUMO)</span>
+          />
+          <span style={{ fontWeight: 500 }}>TraCI · Digital Twin Active</span>
         </div>
 
+        {/* User Card */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            padding: '8px 8px',
+            padding: '4px 0',
           }}
         >
           <span
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              background: '#1E3A5F',
+              width: '32px',
+              height: '32px',
+              borderRadius: '4px',
+              background: 'var(--navy-800)',
+              color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 700,
-              fontSize: '13px',
-              flex: 'none',
-              color: '#E8EEF8',
+              fontSize: '11px',
+              flexShrink: 0,
             }}
           >
             DO
           </span>
-          <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3, flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: '14px', fontWeight: 600 }}>Demo Operator</span>
-            <span style={{ fontSize: '12px', color: '#A3B2CA' }}>PSCA Operator</span>
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, lineHeight: 1.25 }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Demo Operator</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>PSCA PPIC3 Console</span>
+          </div>
           <button
             type="button"
             onClick={onSignOut}
             aria-label="Sign out"
-            title="Sign out to Welcome Screen"
+            title="Sign out"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '44px',
-              height: '44px',
-              borderRadius: '10px',
-              color: '#A3B2CA',
+              width: '32px',
+              height: '32px',
+              borderRadius: '4px',
+              color: 'var(--text-secondary)',
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
             }}
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-            </svg>
+            <LogOut size={16} strokeWidth={1.5} />
           </button>
         </div>
       </div>
-    </nav>
+    </aside>
   );
 };

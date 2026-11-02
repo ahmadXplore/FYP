@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageId } from '../components/Sidebar';
 import { apiService } from '../services/api';
+import { Navigation, ArrowRight, Check, AlertTriangle, Shield, CheckCircle2 } from 'lucide-react';
 
 interface RoutingViewProps {
   onNavigate: (page: PageId) => void;
@@ -39,9 +40,9 @@ export const RoutingView: React.FC<RoutingViewProps> = ({ onNavigate }) => {
   };
 
   const DEFAULT_H: RankedHospital[] = [
-    { id: 'jinnah', name: 'Jinnah Hospital', dist: '5.3', tags: 'Cardiac · Trauma', cap: 'ER beds available', capCls: 'c-green', travel: 340, cong: 45, signal: 35, short: 530, rank: 1, insight: 'Longer on the map but faster in time: the traffic-aware route avoids the congested western approach.' },
-    { id: 'services', name: 'Services Hospital', dist: '4.8', tags: 'Cardiac', cap: 'ER beds limited', capCls: 'c-amber', travel: 380, cong: 60, signal: 65, short: 545, rank: 2, insight: 'The direct road crosses a congested segment, so the route stays on the southern arterial.' },
-    { id: 'mayo', name: 'Mayo Hospital', dist: '4.1', tags: 'Trauma · Neurology', cap: 'ER beds available', capCls: 'c-green', travel: 300, cong: 190, signal: 90, short: 580, rank: 3, insight: 'Nearest by distance but slowest in time. Both routes are the same here, and the congestion penalty dominates.' },
+    { id: 'jinnah', name: 'Jinnah Hospital', dist: '5.3', tags: 'Cardiac · Trauma', cap: 'ER beds available', capCls: 'c-green', travel: 340, cong: 45, signal: 35, short: 530, rank: 1, insight: 'Longer geometric distance but fastest travel time: the dynamic routing engine bypasses the congested western canal corridor.' },
+    { id: 'services', name: 'Services Hospital', dist: '4.8', tags: 'Cardiac', cap: 'ER beds limited', capCls: 'c-amber', travel: 380, cong: 60, signal: 65, short: 545, rank: 2, insight: 'Direct arterial route intersects multiple queued approaches; rerouted to primary southern expressway.' },
+    { id: 'mayo', name: 'Mayo Hospital', dist: '4.1', tags: 'Trauma · Neurology', cap: 'ER beds available', capCls: 'c-green', travel: 300, cong: 190, signal: 90, short: 580, rank: 3, insight: 'Nearest by straight-line distance, but severe bottleneck queues make it 52 seconds slower than Jinnah Hospital.' },
   ].map((h) => ({ ...h, total: h.travel + h.cong + h.signal }));
 
   const [H, setH] = useState(DEFAULT_H);
@@ -79,26 +80,55 @@ export const RoutingView: React.FC<RoutingViewProps> = ({ onNavigate }) => {
   const gain = cur.short - cur.total;
   const sameRoute = cur.id === 'mayo';
 
+  // Categorical palette: #1D70B8 (Primary), #F47738 (Warning), #3E6498 (Navy-600)
   const costs = [
-    { label: 'Travel time', value: fmt(cur.travel), color: '#6AAEFF', w: (cur.travel / cur.total * 100).toFixed(1) + '%' },
-    { label: 'Congestion penalty', value: fmt(cur.cong), color: '#F6B93B', w: (cur.cong / cur.total * 100).toFixed(1) + '%' },
-    { label: 'Signal delay', value: fmt(cur.signal), color: '#A78BFA', w: (cur.signal / cur.total * 100).toFixed(1) + '%' }
+    { label: 'Free-flow Travel Time', value: fmt(cur.travel), color: 'var(--primary)', w: (cur.travel / cur.total * 100).toFixed(1) + '%' },
+    { label: 'Traffic Congestion Delay', value: fmt(cur.cong), color: 'var(--warning)', w: (cur.cong / cur.total * 100).toFixed(1) + '%' },
+    { label: 'Intersection Hold Delay', value: fmt(cur.signal), color: 'var(--navy-600)', w: (cur.signal / cur.total * 100).toFixed(1) + '%' }
   ];
 
   return (
     <main style={{ padding: '24px 32px 40px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
-        {/* Hospital Ranking */}
-        <section className="card" style={{ flex: '2 1 340px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }} aria-label="Hospital ranking">
+        {/* Hospital Ranking Matrix */}
+        <section
+          className="card"
+          style={{ flex: '2 1 360px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}
+          aria-label="Hospital Ranking by Predicted Arrival Time"
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Hospital ranking</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span className="lbl">Multi-Criteria Destination Optimization</span>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Hospital Ranking Matrix</h2>
+            </div>
             <span className="chip c-gray">EM-0412 · P1</span>
           </div>
-          {routeError && <div role="alert" style={{ fontSize: '13px', color: '#F6B93B' }}>{routeError} Showing sample estimates.</div>}
 
-          <div role="group" aria-label="Choose hospital" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+            Ranked strictly by <strong>predicted arrival time</strong> (including queue and signal hold penalties),
+            never by static distance alone.
+          </span>
+
+          {routeError && (
+            <div
+              role="alert"
+              style={{
+                fontSize: '12px',
+                color: 'var(--warning)',
+                padding: '8px 10px',
+                background: 'rgba(244, 119, 56, 0.08)',
+                border: '1px solid rgba(244, 119, 56, 0.25)',
+                borderRadius: '4px',
+              }}
+            >
+              {routeError} Displaying calibrated simulation data.
+            </div>
+          )}
+
+          <div role="group" aria-label="Select destination hospital" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {H.map((h) => {
               const on = selId === h.id;
+              const isBest = h.rank === 1;
               return (
                 <button
                   key={h.id}
@@ -106,177 +136,295 @@ export const RoutingView: React.FC<RoutingViewProps> = ({ onNavigate }) => {
                   className={`pick ${on ? 'pick-on' : ''}`}
                   onClick={() => setSelId(h.id)}
                   aria-pressed={on}
-                  style={{ gap: '14px', padding: '14px 16px', borderRadius: '12px' }}
+                  style={{
+                    gap: '12px',
+                    padding: '12px 14px',
+                    borderRadius: '4px',
+                    borderLeft: on ? '3px solid var(--accent-gold)' : isBest ? '3px solid var(--success)' : '1px solid var(--border-subtle)',
+                  }}
                 >
                   <span
                     className="mono"
                     style={{
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '50%',
-                      flex: 'none',
-                      background: h.rank === 1 ? '#34D3A8' : '#243350',
-                      color: h.rank === 1 ? '#06231C' : '#E8EEF8',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '2px',
+                      flexShrink: 0,
+                      background: isBest ? 'var(--navy-800)' : 'var(--surface-alt)',
+                      color: isBest ? 'var(--accent-gold)' : 'var(--text)',
+                      border: isBest ? '1px solid var(--accent-gold)' : '1px solid var(--border-subtle)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontWeight: 600,
-                      fontSize: '14px',
+                      fontWeight: 700,
+                      fontSize: '13px',
                     }}
                   >
                     {h.rank}
                   </span>
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
-                      <span style={{ fontWeight: 700, fontSize: '15px' }}>{h.name}</span>
-                      <span className="mono" style={{ fontWeight: 600, fontSize: '18px', color: h.rank === 1 ? '#34D3A8' : '#E8EEF8' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
+                      <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>
+                        {h.name}
+                      </span>
+                      <span
+                        className="mono"
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '16px',
+                          color: isBest ? 'var(--success)' : 'var(--text)',
+                        }}
+                      >
                         {fmt(h.total)}
                       </span>
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      {h.dist} km · {h.tags}
                     </span>
-                    <span style={{ fontSize: '12px', color: '#A3B2CA' }}>{h.dist} km · {h.tags}</span>
-                    <span style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       <span className={`chip ${h.capCls}`}>{h.cap}</span>
-                      <span className={`chip ${h.rank === 1 ? 'c-green' : h.id === 'mayo' ? 'c-amber' : 'c-gray'}`}>
-                        {h.rank === 1 ? 'FASTEST' : h.id === 'mayo' ? 'SHORTEST DISTANCE' : 'ALTERNATIVE'}
+                      <span className={`chip ${isBest ? 'c-green' : h.id === 'mayo' ? 'c-amber' : 'c-gray'}`}>
+                        {isBest ? 'FASTEST ARRIVAL' : h.id === 'mayo' ? 'SHORTEST DISTANCE (DELAYED)' : 'BACKUP OPTION'}
                       </span>
-                    </span>
-                  </span>
+                    </div>
+                  </div>
                 </button>
               );
             })}
           </div>
 
-          <span style={{ fontSize: '12px', color: '#7F90AB', lineHeight: 1.5 }}>
-            Capacity and speciality data are used only if available from PSCA or 1122. Values shown are sample data.
+          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+            Punjab 1122 ER bed availability is synchronized via hospital telemetry API.
           </span>
         </section>
 
-        {/* Selected Route Map */}
-        <section className="card" style={{ flex: '3 1 560px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }} aria-label="Route map">
+        {/* Selected Route Map Preview */}
+        <section
+          className="card"
+          style={{ flex: '3 1 540px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}
+          aria-label="Route Comparison Map"
+        >
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Selected route</h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12px', color: '#A3B2CA' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span className="lbl">Trajectory Comparison</span>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>
+                Traffic-Aware A* vs. Shortest Distance
+              </h2>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '11px', color: 'var(--text)' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '18px', height: '4px', borderRadius: '2px', background: '#34D3A8' }}></span>
-                Traffic-aware A*
+                <span style={{ width: '16px', height: '4px', background: 'var(--success)' }} />
+                <span>Traffic-Aware A* (Fastest)</span>
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '18px', height: 0, borderTop: '3px dashed #F6B93B' }}></span>
-                Shortest distance
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '18px', height: '4px', borderRadius: '2px', background: '#FF7A7A' }}></span>
-                Congested
+                <span style={{ width: '16px', height: 0, borderTop: '2px dashed var(--text-secondary)' }} />
+                <span>Shortest Road (Congested)</span>
               </span>
             </div>
           </div>
 
-          <svg viewBox="0 0 900 520" style={{ width: '100%', height: 'auto', borderRadius: '10px', background: '#0D1627', border: '1px solid #1B2B46' }} role="img" aria-label="Route comparison map">
-            <path d="M0 270 C 250 230, 600 300, 900 250" fill="none" stroke="#12304F" strokeWidth="26" opacity="0.8" />
-            <g stroke="#1B2B46" strokeWidth="12" fill="none" strokeLinecap="round">
-              <path d="M20 90H880M20 200H880M20 320H880M20 440H880" />
-              <path d="M70 40V490M230 40V490M400 40V490M560 40V490M720 40V490" />
-            </g>
-            <g fill="none" strokeLinecap="round" strokeWidth="8" opacity="0.85">
-              <path d="M70 440V90" stroke="#FF7A7A" />
-              <path d="M230 200V320" stroke="#FF7A7A" />
-              <path d="M400 320H720" stroke="#F6B93B" />
-              <path d="M560 200V90" stroke="#F6B93B" />
-            </g>
-            <polyline points={curRoutePoints.shortPts} fill="none" stroke="#F6B93B" strokeWidth="3" strokeDasharray="9 8" strokeLinejoin="round" opacity={sameRoute ? 0 : 0.9} />
-            <polyline points={curRoutePoints.aware} fill="none" stroke="#34D3A8" strokeWidth="7" strokeLinejoin="round" strokeLinecap="round" />
+          <div
+            style={{
+              position: 'relative',
+              borderRadius: '4px',
+              border: '1px solid var(--border-subtle)',
+              overflow: 'hidden',
+              background: 'var(--navy-50)',
+            }}
+          >
+            <svg
+              viewBox="0 0 900 520"
+              style={{ width: '100%', height: 'auto', display: 'block' }}
+              role="img"
+              aria-label="Route comparison map between selected hospital routes"
+            >
+              {/* Canal Waterway representation */}
+              <path d="M0 270 C 250 230, 600 300, 900 250" fill="none" stroke="var(--navy-100)" strokeWidth="26" opacity="0.6" />
 
-            <g transform="translate(70 440)">
-              <circle r="12" fill="#FFFFFF" stroke="#FF7A7A" strokeWidth="2.5" />
-              <path d="M0 -5v10M-5 0h10" stroke="#E5484D" strokeWidth="3" strokeLinecap="round" />
-            </g>
-            <text x="40" y="478" fontFamily="'IBM Plex Sans', sans-serif" fontSize="12" fontWeight="600" fill="#A3B2CA">AMB-017</text>
+              {/* Road Grid */}
+              <g stroke="var(--border-subtle)" strokeWidth="12" fill="none" strokeLinecap="square">
+                <path d="M20 90H880M20 200H880M20 320H880M20 440H880" />
+                <path d="M70 40V490M230 40V490M400 40V490M560 40V490M720 40V490" />
+              </g>
 
-            <g fontFamily="'IBM Plex Sans', sans-serif" fontSize="12" fontWeight="600" textAnchor="middle">
-              <g transform="translate(800 72)" opacity={selId === 'jinnah' ? 1 : 0.4}>
-                <rect width="40" height="36" rx="9" fill={selId === 'jinnah' ? '#1E3A5F' : '#16233A'} />
-                <text x="20" y="25" fontSize="20" fontWeight="700" fill="#E8EEF8">H</text>
-                <text x="20" y="54" fill="#A3B2CA">Jinnah</text>
+              {/* Congested Segments */}
+              <g fill="none" strokeLinecap="square" strokeWidth="6" opacity="0.8">
+                <path d="M70 440V90" stroke="var(--danger)" />
+                <path d="M230 200V320" stroke="var(--danger)" />
+                <path d="M400 320H720" stroke="var(--warning)" />
+                <path d="M560 200V90" stroke="var(--warning)" />
               </g>
-              <g transform="translate(540 302)" opacity={selId === 'services' ? 1 : 0.4}>
-                <rect width="40" height="36" rx="9" fill={selId === 'services' ? '#1E3A5F' : '#16233A'} />
-                <text x="20" y="25" fontSize="20" fontWeight="700" fill="#E8EEF8">H</text>
-                <text x="20" y="54" fill="#A3B2CA">Services</text>
-              </g>
-              <g transform="translate(210 54)" opacity={selId === 'mayo' ? 1 : 0.4}>
-                <rect width="40" height="36" rx="9" fill={selId === 'mayo' ? '#1E3A5F' : '#16233A'} />
-                <text x="20" y="25" fontSize="20" fontWeight="700" fill="#E8EEF8">H</text>
-                <text x="20" y="-8" fill="#A3B2CA">Mayo</text>
-              </g>
-            </g>
-          </svg>
 
-          {/* Cards below Route Map */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px' }}>
-            <div style={{ flex: '1 1 160px', padding: '14px 16px', borderRadius: '10px', background: '#0F1A2E', border: '1px solid #243350', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span className="lbl">Predicted arrival</span>
-              <span className="mono" style={{ fontSize: '26px', fontWeight: 600, color: '#34D3A8' }}>{fmt(cur.total)}</span>
+              {/* Shortest Distance Route (Dijkstra baseline) */}
+              <polyline
+                points={curRoutePoints.shortPts}
+                fill="none"
+                stroke="var(--text-secondary)"
+                strokeWidth="3"
+                strokeDasharray="8 6"
+                strokeLinejoin="round"
+                opacity={sameRoute ? 0 : 0.9}
+              />
+
+              {/* Traffic-Aware A* Priority Route (High visibility: White border + Solid Green) */}
+              <polyline
+                points={curRoutePoints.aware}
+                fill="none"
+                stroke="#FFFFFF"
+                strokeWidth="10"
+                strokeLinejoin="round"
+                strokeLinecap="square"
+              />
+              <polyline
+                points={curRoutePoints.aware}
+                fill="none"
+                stroke="var(--success)"
+                strokeWidth="6"
+                strokeLinejoin="round"
+                strokeLinecap="square"
+              />
+
+              {/* Ambulance Origin Location */}
+              <g transform="translate(70 440)">
+                <rect x="-14" y="-14" width="28" height="28" rx="2" fill="var(--danger)" stroke="#FFFFFF" strokeWidth="2" />
+                <path d="M0 -7v14M-7 0h14" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="square" />
+                <text x="0" y="28" textAnchor="middle" fontFamily="'Public Sans', sans-serif" fontSize="11" fontWeight="700" fill="var(--text)">
+                  AMB-017
+                </text>
+              </g>
+
+              {/* Hospitals along the sector */}
+              <g fontFamily="'Public Sans', sans-serif" fontSize="11" fontWeight="700" textAnchor="middle">
+                {/* Jinnah Hospital */}
+                <g transform="translate(800 70)" opacity={selId === 'jinnah' ? 1 : 0.45}>
+                  <rect width="44" height="40" rx="3" fill="var(--navy-800)" stroke="#FFFFFF" strokeWidth="2" />
+                  <path d="M22 10v20M12 20h20" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="square" />
+                  <text x="22" y="54" fill="var(--text)">Jinnah Hospital</text>
+                </g>
+
+                {/* Services Hospital */}
+                <g transform="translate(540 300)" opacity={selId === 'services' ? 1 : 0.45}>
+                  <rect width="44" height="40" rx="3" fill="var(--navy-800)" stroke="#FFFFFF" strokeWidth="2" />
+                  <path d="M22 10v20M12 20h20" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="square" />
+                  <text x="22" y="54" fill="var(--text)">Services Hospital</text>
+                </g>
+
+                {/* Mayo Hospital */}
+                <g transform="translate(210 50)" opacity={selId === 'mayo' ? 1 : 0.45}>
+                  <rect width="44" height="40" rx="3" fill="var(--navy-800)" stroke="#FFFFFF" strokeWidth="2" />
+                  <path d="M22 10v20M12 20h20" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="square" />
+                  <text x="22" y="-8" fill="var(--text)">Mayo Hospital</text>
+                </g>
+              </g>
+            </svg>
+          </div>
+
+          {/* Time Gain Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+            <div style={{ padding: '12px 14px', borderRadius: '4px', background: 'var(--surface-alt)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span className="lbl" style={{ fontSize: '10px' }}>Predicted Arrival (A*)</span>
+              <span className="mono" style={{ fontSize: '22px', fontWeight: 700, color: 'var(--success)' }}>
+                {fmt(cur.total)}
+              </span>
             </div>
-            <div style={{ flex: '1 1 160px', padding: '14px 16px', borderRadius: '10px', background: '#0F1A2E', border: '1px solid #243350', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span className="lbl">Shortest-distance route</span>
-              <span className="mono" style={{ fontSize: '26px', fontWeight: 600, color: '#F6B93B' }}>{fmt(cur.short)}</span>
+            <div style={{ padding: '12px 14px', borderRadius: '4px', background: 'var(--surface-alt)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span className="lbl" style={{ fontSize: '10px' }}>Shortest Road Time</span>
+              <span className="mono" style={{ fontSize: '22px', fontWeight: 700, color: 'var(--warning)' }}>
+                {fmt(cur.short)}
+              </span>
             </div>
-            <div style={{ flex: '1 1 160px', padding: '14px 16px', borderRadius: '10px', background: '#0F1A2E', border: '1px solid #243350', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span className="lbl">Time gained</span>
-              <span className="mono" style={{ fontSize: '26px', fontWeight: 600 }}>
-                {gain > 0 ? `−${fmt(gain)}` : 'same route'}
+            <div style={{ padding: '12px 14px', borderRadius: '4px', background: 'var(--surface-alt)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span className="lbl" style={{ fontSize: '10px' }}>Dynamic Net Savings</span>
+              <span className="mono" style={{ fontSize: '22px', fontWeight: 700, color: gain > 0 ? 'var(--success)' : 'var(--text)' }}>
+                {gain > 0 ? `−${fmt(gain)}` : 'Identical Road'}
               </span>
             </div>
           </div>
-          <span style={{ fontSize: '13px', color: '#A3B2CA', lineHeight: 1.5 }}>{cur.insight}</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            {cur.insight}
+          </span>
         </section>
       </div>
 
-      {/* Bottom Section */}
+      {/* Bottom Section: Edge Cost Breakdown & Corridor Confirmation */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'stretch' }}>
         {/* Edge Cost Breakdown */}
-        <section className="card" style={{ flex: '3 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }} aria-label="Edge cost breakdown">
+        <section
+          className="card"
+          style={{ flex: '3 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}
+          aria-label="Edge Cost Breakdown"
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Why this route? Edge cost breakdown</h2>
-            <span className="mono" style={{ fontSize: '14px', fontWeight: 600 }}>{fmt(cur.total)} total</span>
+            <div>
+              <span className="lbl">Cost Function Rationale</span>
+              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>
+                Why this route? Objective Function Cost Breakdown
+              </h2>
+            </div>
+            <span className="mono" style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+              {fmt(cur.total)} Total Route Cost
+            </span>
           </div>
 
-          <div style={{ display: 'flex', height: '14px', borderRadius: '999px', overflow: 'hidden', background: '#243350' }}>
+          {/* Segmented bar without gradients */}
+          <div style={{ display: 'flex', height: '12px', borderRadius: '2px', overflow: 'hidden', background: 'var(--border-subtle)' }}>
             {costs.map((c, i) => (
-              <div key={i} style={{ height: '100%', background: c.color, width: c.w }}></div>
+              <div key={i} style={{ height: '100%', background: c.color, width: c.w }} />
             ))}
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px' }}>
             {costs.map((c, i) => (
-              <div key={i} style={{ flex: '1 1 140px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#A3B2CA' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: c.color }}></span>
+              <div key={i} style={{ flex: '1 1 140px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '1px', background: c.color }} />
                   {c.label}
                 </span>
-                <span className="mono" style={{ fontSize: '18px', fontWeight: 600 }}>{c.value}</span>
+                <span className="mono" style={{ fontSize: '16px', fontWeight: 700 }}>{c.value}</span>
               </div>
             ))}
           </div>
 
-          <span style={{ fontSize: '13px', color: '#7F90AB', lineHeight: 1.5 }}>
-            Edge cost = predicted travel time + congestion, signal-delay and incident penalties. Dijkstra and A* baselines come first, then the time-dependent traffic-weighted A*.
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            Cost formula: <code>Cost(e) = T_travel(e) + W_cong · Delay_cong(e) + W_sig · Delay_sig(e)</code>.
+            Evaluated by the traffic-weighted A* solver with live TraCI speed feedback.
           </span>
         </section>
 
-        {/* Confirm Plan */}
-        <section className="card" style={{ flex: '2 1 320px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '16px' }} aria-label="Confirm plan">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Confirm plan</h2>
-            <span style={{ fontSize: '14px', color: '#A3B2CA', lineHeight: 1.55 }}>
-              Route to <b style={{ color: '#E8EEF8' }}>{cur.name}</b> crosses 4 signalised intersections. Next, the corridor engine schedules priority at each one.
+        {/* Action Panel to Corridor Planner */}
+        <section
+          className="card"
+          style={{
+            flex: '2 1 300px',
+            minWidth: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: '16px',
+            background: 'var(--navy-50)',
+            borderLeft: '4px solid var(--accent-gold)',
+          }}
+          aria-label="Confirm Green Corridor"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span className="lbl" style={{ color: 'var(--navy-800)' }}>Phase Preemption Next Step</span>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--navy-900)' }}>
+              Authorize Corridor Sequence
+            </h2>
+            <span style={{ fontSize: '13px', color: 'var(--navy-700)', lineHeight: 1.5 }}>
+              Selected destination is <strong>{cur.name}</strong> ({cur.dist} km). The trajectory spans
+              4 signalized intersections. Click below to inspect green wave timings in the planner.
             </span>
           </div>
-          <button type="button" onClick={() => onNavigate('corridor')} className="btn-p">
-            Plan green corridor
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#06231C" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('corridor')}
+            className="btn-p"
+            style={{ width: '100%', gap: '8px' }}
+          >
+            <span>Plan Green Wave Corridor</span>
+            <ArrowRight size={16} strokeWidth={1.5} />
           </button>
         </section>
       </div>

@@ -682,7 +682,27 @@ def get_admin_users():
             "last": r["last_active"]
         })
     conn.close()
+    for account in auth_service.list_accounts():
+        users.append({
+            "account_id": account["id"],
+            "email": account["official_email"],
+            "name": account["full_name"],
+            "role": (
+                "Admin · PSCA & 1122"
+                if account["role"] == "admin"
+                else f'{account["role"].capitalize()} · {account["department"]}'
+            ),
+            "status": "ACTIVE" if account["approval_status"] == "approved" else account["approval_status"].upper(),
+            "last": "Never",
+        })
     return {"users": users}
+
+
+@app.post("/api/admin/users/{account_id}/approve")
+def approve_admin_user(account_id: int):
+    auth_service.approve_account(account_id)
+    return {"status": "success", "account_id": account_id}
+
 
 @app.post("/api/admin/users/invite")
 def invite_admin_user(req: UserInviteRequest):

@@ -26,12 +26,12 @@ class AuthServiceError(Exception):
 
 def _read_settings() -> Dict[str, str]:
     settings: Dict[str, str] = {}
-    env_path = Path(__file__).with_name(".env")
-    if env_path.is_file():
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            key, separator, value = line.partition("=")
-            if separator and key.strip() and not key.lstrip().startswith("#"):
-                settings[key.strip()] = value.strip().strip("\"'")
+    for env_path in (Path(__file__).resolve().parent.parent / ".env", Path(__file__).with_name(".env")):
+        if env_path.is_file():
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                key, separator, value = line.partition("=")
+                if separator and key.strip() and not key.lstrip().startswith("#"):
+                    settings[key.strip()] = value.strip().strip("\"'")
     settings.update({key: value for key, value in os.environ.items()})
     return settings
 
@@ -94,6 +94,15 @@ def _validate_account_type(role: str, department: str) -> Tuple[str, str]:
     if department not in {"PSCA", "1122"}:
         raise AuthServiceError(400, "Select PSCA or 1122 as your department")
     return role, department
+
+
+def _is_bootstrap_admin(email: str) -> bool:
+    configured_admins = {
+        configured_email.strip().casefold()
+        for configured_email in _SETTINGS.get("AUTH_ADMIN_EMAILS", "").split(",")
+        if configured_email.strip()
+    }
+    return email.casefold() in configured_admins
 
 
 def _validate_password(password: str) -> None:
@@ -209,6 +218,7 @@ def init_auth_store() -> None:
             "employee_accounts": {
                 "role": "VARCHAR(20) NOT NULL DEFAULT 'employee'",
                 "department": "VARCHAR(20) NOT NULL DEFAULT '1122'",
+                "approval_status": "VARCHAR(20) NOT NULL DEFAULT 'approved'",
             },
             "employee_auth_challenges": {
                 "role": "VARCHAR(20) NOT NULL DEFAULT 'employee'",
@@ -340,6 +350,8 @@ def request_signup_otp(
     full_name, job_title = _validate_profile(full_name, job_title)
     role, department = _validate_account_type(role, department)
     email = _validate_employee_email(email)
+    if role == "admin" and not _is_bootstrap_admin(email):
+        raise AuthServiceError(403, "Admin registration is restricted to configured AUTH_ADMIN_EMAILS addresses")
     _validate_password(password)
 
     with engine.connect() as conn:
@@ -456,8 +468,10 @@ def verify_signup_otp(email: str, challenge_id: str, otp: str) -> Dict[str, Any]
                 raise AuthServiceError(400, "OTP challenge is invalid or already used")
             conn.execute(text("""
                 INSERT INTO employee_accounts
-                    (full_name, official_email, job_title, password_hash, role, department, created_at)
-                VALUES (:full_name, :email, :job_title, :password_hash, :role, :department, :created_at)
+                    (full_name, official_email, job_title, password_hash, role, department,
+                     approval_status, created_at)
+                VALUES (:full_name, :email, :job_title, :password_hash, :role, :department,
+                        :approval_status, :created_at)
             """), {
                 "full_name": challenge["full_name"],
                 "email": email,
@@ -465,6 +479,11 @@ def verify_signup_otp(email: str, challenge_id: str, otp: str) -> Dict[str, Any]
                 "password_hash": challenge["password_hash"],
                 "role": challenge["role"],
                 "department": challenge["department"],
+                "approval_status": (
+                    "approved"
+                    if challenge["role"] == "admin" and _is_bootstrap_admin(email)
+                    else "pending"
+                ),
                 "created_at": now,
             })
     except IntegrityError as error:
@@ -477,7 +496,12 @@ def verify_signup_otp(email: str, challenge_id: str, otp: str) -> Dict[str, Any]
         "role": challenge["role"],
         "department": challenge["department"],
     }
-    return {"status": "success", "access_token": _make_access_token(account), "user": account}
+    if challenge["role"] == "admin" and _is_bootstrap_admin(email):
+        return {"status": "success", "access_token": _make_access_token(account), "user": account}
+    return {
+        "status": "pending_approval",
+        "message": "Your account request has been sent to an administrator. You can sign in after it is approved.",
+    }
 
 
 def login(email: str, password: str, role: str, department: str) -> Dict[str, Any]:
@@ -485,25 +509,56 @@ def login(email: str, password: str, role: str, department: str) -> Dict[str, An
     role, department = _validate_account_type(role, department)
     with engine.connect() as conn:
         row = conn.execute(text("""
-            SELECT full_name, official_email, job_title, password_hash, role, department
+            SELECT full_name, official_email, job_title, password_hash, role, department, approval_status
             FROM employee_accounts WHERE official_email = :email
         """), {"email": email}).mappings().first()
     if (
         row is None
         or not _verify_password(password, row["password_hash"])
         or row["role"] != role
-        or row["department"] != department
+        or (row["role"] != "admin" and row["department"] != department)
     ):
         raise AuthServiceError(401, "Email or password is incorrect")
+    if row["approval_status"] != "approved":
+        if row["approval_status"] == "pending":
+            raise AuthServiceError(403, "Your account request is awaiting administrator approval")
+        raise AuthServiceError(403, "Your account has not been approved for system access")
 
     account = {
         "official_email": row["official_email"],
         "full_name": row["full_name"],
         "job_title": row["job_title"],
         "role": row["role"],
-        "department": row["department"],
+        "department": department,
     }
     return {"status": "success", "access_token": _make_access_token(account), "user": account}
+
+
+def list_accounts() -> list[Dict[str, Any]]:
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT id, full_name, official_email, role, department, approval_status
+            FROM employee_accounts
+            ORDER BY created_at ASC, id ASC
+        """)).mappings().all()
+    return [dict(row) for row in rows]
+
+
+def approve_account(account_id: int) -> None:
+    with engine.begin() as conn:
+        result = conn.execute(text("""
+            UPDATE employee_accounts
+            SET approval_status = 'approved'
+            WHERE id = :account_id AND approval_status = 'pending'
+        """), {"account_id": account_id})
+        if result.rowcount == 1:
+            return
+        account = conn.execute(text("""
+            SELECT approval_status FROM employee_accounts WHERE id = :account_id
+        """), {"account_id": account_id}).first()
+    if account is None:
+        raise AuthServiceError(404, "Account request was not found")
+    raise AuthServiceError(409, "Account request is no longer pending")
 
 
 def verify_reset_otp(email: str, challenge_id: str, otp: str) -> Dict[str, Any]:

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { apiService } from '../services/api';
+import './SignInView.css';
 
 type AuthView =
   | 'login'
   | 'signup'
   | 'verify-signup'
+  | 'approval-pending'
   | 'forgot-password'
   | 'verify-reset'
   | 'reset-password'
@@ -22,6 +25,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
   const [accountRole, setAccountRole] = useState<'employee' | 'admin'>('employee');
   const [department, setDepartment] = useState<'PSCA' | '1122'>('1122');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [challengeId, setChallengeId] = useState('');
   const [otp, setOtp] = useState('');
@@ -43,6 +47,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
         setPendingToken(result.access_token);
         setPendingEmail(email);
         setPassword('');
+        setShowPassword(false);
         setView('save-credentials');
       } else if (view === 'signup') {
         const result = await apiService.requestSignupOtp({
@@ -59,10 +64,16 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
         setView('verify-signup');
       } else if (view === 'verify-signup') {
         const result = await apiService.verifySignupOtp(email, challengeId, otp);
-        setPendingToken(result.access_token);
-        setPendingEmail(email);
         setPassword('');
-        setView('save-credentials');
+        setShowPassword(false);
+        if (result.status === 'pending_approval') {
+          setMessage(result.message);
+          setView('approval-pending');
+        } else {
+          setPendingToken(result.access_token);
+          setPendingEmail(email);
+          setView('save-credentials');
+        }
       } else if (view === 'forgot-password') {
         const result = await apiService.requestPasswordReset(email);
         setChallengeId(result.challenge_id);
@@ -114,94 +125,82 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexWrap: 'wrap', background: '#0B1220' }}>
-      {/* Left Column: FYP Presentation */}
-      <div
-        style={{
-          flex: '1 1 560px',
-          minWidth: 0,
-          boxSizing: 'border-box',
-          padding: '56px 64px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          gap: '40px',
-          background: '#0F1A2E',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <svg width="40" height="40" viewBox="0 0 40 40" role="img" aria-label="GreenCorridor AI logo">
-            <rect x="2" y="2" width="36" height="36" rx="10" fill="#34D3A8" />
-            <path d="M9 20h22" stroke="#06231C" strokeWidth="3" strokeLinecap="round" />
-            <circle cx="13" cy="20" r="3.4" fill="#06231C" />
-            <circle cx="20" cy="20" r="3.4" fill="#06231C" />
-            <circle cx="27" cy="20" r="3.4" fill="#06231C" />
+    <div className="auth-shell">
+      <div className="auth-intro">
+        <div className="auth-brand">
+          <svg className="auth-brand-mark" viewBox="0 0 40 40" role="img" aria-label="GreenCorridor AI logo">
+            <rect x="2" y="2" width="36" height="36" rx="4" fill="var(--accent-gold)" />
+            <path d="M9 20h22" stroke="var(--navy-900)" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="13" cy="20" r="3.4" fill="var(--navy-900)" />
+            <circle cx="20" cy="20" r="3.4" fill="var(--navy-900)" />
+            <circle cx="27" cy="20" r="3.4" fill="var(--navy-900)" />
           </svg>
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+          <div className="auth-brand-copy">
             <span style={{ fontWeight: 700, fontSize: '18px' }}>GreenCorridor AI</span>
-            <span style={{ fontSize: '12px', color: '#A3B2CA' }}>Emergency vehicle priority layer</span>
+            <span className="auth-brand-subtitle" style={{ fontSize: '12px' }}>Emergency vehicle priority layer</span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '640px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.12em', color: '#34D3A8' }}>
+        <div className="auth-intro-copy">
+          <span className="auth-eyebrow">
             FINAL YEAR PROJECT · UMT LAHORE
           </span>
-          <h1 style={{ margin: 0, fontSize: '46px', lineHeight: 1.12, fontWeight: 700, letterSpacing: '-0.02em' }}>
+          <h1 className="auth-title">
             A moving green corridor for every emergency.
           </h1>
-          <p style={{ margin: 0, fontSize: '17px', lineHeight: 1.55, color: '#A3B2CA' }}>
+          <p className="auth-description">
             An AI decision layer that routes the ambulance, predicts when it reaches each junction, and prepares
             signals ahead of it, with every command checked by a safety validator.
           </p>
 
-          <svg viewBox="0 0 600 170" style={{ width: '100%', maxWidth: '600px', height: 'auto' }} role="img" aria-label="Corridor strip illustration">
-            <rect x="20" y="82" width="560" height="14" rx="7" fill="#243350" />
-            <rect x="20" y="82" width="190" height="14" rx="7" fill="#34D3A8" opacity="0.35" />
-            <rect x="8" y="64" width="46" height="50" rx="10" fill="#0B1220" stroke="#FF7A7A" strokeWidth="2" />
-            <path d="M31 78v22M20 89h22" stroke="#FF7A7A" strokeWidth="4" strokeLinecap="round" />
-            <circle cx="31" cy="89" r="22" fill="none" stroke="#FF7A7A" strokeWidth="2" className="pulse" />
+          <svg className="auth-corridor" viewBox="0 0 600 170" role="img" aria-label="Corridor strip illustration">
+            <rect x="20" y="82" width="560" height="14" rx="2" fill="var(--navy-700)" />
+            <rect x="20" y="82" width="190" height="14" rx="2" fill="var(--success)" />
+            <rect x="8" y="64" width="46" height="50" rx="4" fill="var(--navy-900)" stroke="var(--danger)" strokeWidth="2" />
+            <path d="M31 78v22M20 89h22" stroke="var(--danger)" strokeWidth="4" strokeLinecap="round" />
+            <circle cx="31" cy="89" r="22" fill="none" stroke="var(--danger)" strokeWidth="2" />
             <g fontFamily="'IBM Plex Sans', sans-serif" fontSize="11" fontWeight="700" textAnchor="middle">
-              <circle cx="170" cy="89" r="17" fill="#34D3A8" /><text x="170" y="93" fill="#06231C">I1</text>
-              <circle cx="285" cy="89" r="17" fill="#F6B93B" /><text x="285" y="93" fill="#2A1E00">I2</text>
-              <circle cx="400" cy="89" r="17" fill="#7F90AB" /><text x="400" y="93" fill="#0B1220">I3</text>
-              <circle cx="500" cy="89" r="17" fill="#7F90AB" /><text x="500" y="93" fill="#0B1220">I4</text>
-              <rect x="548" y="64" width="46" height="50" rx="10" fill="#1E3A5F" /><text x="571" y="95" fontSize="20" fill="#E8EEF8">H</text>
-              <text x="170" y="52" fill="#34D3A8">GREEN</text>
-              <text x="285" y="52" fill="#F6B93B">PREPARING</text>
-              <text x="400" y="52" fill="#A3B2CA">MONITOR</text>
-              <text x="500" y="52" fill="#A3B2CA">MONITOR</text>
-              <g fontFamily="'IBM Plex Mono', monospace" fontWeight="500" fill="#E8EEF8">
+              <circle cx="170" cy="89" r="17" fill="var(--success)" /><text x="170" y="93" fill="#FFFFFF">I1</text>
+              <circle cx="285" cy="89" r="17" fill="var(--accent-gold)" /><text x="285" y="93" fill="var(--navy-900)">I2</text>
+              <circle cx="400" cy="89" r="17" fill="var(--navy-600)" /><text x="400" y="93" fill="#FFFFFF">I3</text>
+              <circle cx="500" cy="89" r="17" fill="var(--navy-600)" /><text x="500" y="93" fill="#FFFFFF">I4</text>
+              <rect x="548" y="64" width="46" height="50" rx="4" fill="var(--navy-900)" /><text x="571" y="95" fontSize="20" fill="#FFFFFF">H</text>
+              <text x="170" y="52" fill="#FFFFFF">GREEN</text>
+              <text x="285" y="52" fill="var(--accent-gold)">PREPARING</text>
+              <text x="400" y="52" fill="#E7EFF8">MONITOR</text>
+              <text x="500" y="52" fill="#E7EFF8">MONITOR</text>
+              <g fontFamily="'IBM Plex Mono', monospace" fontWeight="500" fill="#FFFFFF">
                 <text x="170" y="132">ETA 12 s</text><text x="285" y="132">ETA 40 s</text><text x="400" y="132">ETA 85 s</text><text x="500" y="132">ETA 130 s</text>
               </g>
             </g>
           </svg>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: '#A3B2CA', lineHeight: 1.5 }}>
+        <div className="auth-intro-footer">
           <span>Muhammad Ahmad Asif · Muhammad Taimoor Nasir · Muhammad Usman Danial</span>
           <span>Advisor: Prof. Hafiz Ahsan Arshad · Co-advisor: Dr. Muhammad Husnain Ashfaq</span>
         </div>
       </div>
 
-      {/* Right Column: Employee Authentication */}
-      <div
-        style={{
-          flex: '1 1 460px',
-          minWidth: 0,
-          boxSizing: 'border-box',
-          padding: '56px 40px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <div style={{ width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {view === 'save-credentials' ? (
+      <div className="auth-content">
+        <div className="auth-card">
+          {view === 'approval-pending' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>Request submitted</h2>
+                <span role="status" className="auth-heading-copy">
+                  {message}
+                </span>
+              </div>
+              <button type="button" className="btn-p" style={{ width: '100%' }} onClick={showLogin}>
+                Return to sign in
+              </button>
+            </div>
+          ) : view === 'save-credentials' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>Save your credentials?</h2>
-                <span style={{ fontSize: '14px', color: '#A3B2CA' }}>
+                <span className="auth-heading-copy">
                   Remember {pendingEmail} on this device for your next sign-in. Your password is never saved in the browser.
                 </span>
               </div>
@@ -226,7 +225,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
                           : view === 'verify-reset' ? 'Verify reset code'
                             : 'Choose a new password'}
                 </h2>
-                <span style={{ fontSize: '14px', color: '#A3B2CA' }}>
+                <span className="auth-heading-copy">
                   {view === 'login' ? `Sign in with your ${department} ${accountRole === 'admin' ? 'admin' : 'employee'} account.`
                     : view === 'signup' ? `Create a ${department} ${accountRole === 'admin' ? 'admin' : 'employee'} account.`
                       : view === 'verify-signup' ? `Enter the six-digit code sent to ${email}.`
@@ -239,22 +238,22 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
               {['login', 'signup'].includes(view) && (
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label htmlFor="account-type" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Account type</label>
+                    <label htmlFor="account-type" className="auth-form-label">Account type</label>
                     <select id="account-type" className="field" value={accountRole} onChange={(event) => setAccountRole(event.target.value === 'admin' ? 'admin' : 'employee')}>
                       <option value="employee">Employee</option>
                       <option value="admin">Admin</option>
                     </select>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label htmlFor="department" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Department</label>
+                    <label htmlFor="department" className="auth-form-label">Department</label>
                     <select id="department" className="field" value={department} onChange={(event) => setDepartment(event.target.value === 'PSCA' ? 'PSCA' : '1122')}>
                       <option value="PSCA">PSCA</option>
                       <option value="1122">1122</option>
                     </select>
                   </div>
                   {view === 'signup' && accountRole === 'admin' && (
-                    <span style={{ fontSize: '12px', color: '#F6B93B' }}>
-                      Admin self-registration is enabled. Admin access should only be used by trusted personnel.
+                    <span className="auth-notice">
+                      Admin registration is restricted to configured administrator email addresses.
                     </span>
                   )}
                 </>
@@ -263,11 +262,11 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
               {view === 'signup' && (
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label htmlFor="full-name" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Full name</label>
+                    <label htmlFor="full-name" className="auth-form-label">Full name</label>
                     <input id="full-name" className="field" type="text" autoComplete="name" maxLength={120} required value={fullName} onChange={(event) => setFullName(event.target.value)} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label htmlFor="job-title" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Job title</label>
+                    <label htmlFor="job-title" className="auth-form-label">Job title</label>
                     <input id="job-title" className="field" type="text" autoComplete="organization-title" maxLength={120} required value={jobTitle} onChange={(event) => setJobTitle(event.target.value)} />
                   </div>
                 </>
@@ -275,7 +274,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
 
               {['login', 'signup', 'forgot-password'].includes(view) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label htmlFor="official-email" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Official email address</label>
+                  <label htmlFor="official-email" className="auth-form-label">Official email address</label>
                   <input id="official-email" className="field" type="email" autoComplete="email" maxLength={254} required value={email} onChange={(event) => setEmail(event.target.value)} />
                 </div>
               )}
@@ -283,8 +282,19 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
               {view === 'login' && (
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label htmlFor="login-password" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Password</label>
-                    <input id="login-password" className="field" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
+                    <label htmlFor="login-password" className="auth-form-label">Password</label>
+                    <div className="auth-password-wrap">
+                      <input id="login-password" className="field" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
+                      <button
+                        type="button"
+                        className="auth-password-toggle"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        aria-pressed={showPassword}
+                        onClick={() => setShowPassword((visible) => !visible)}
+                      >
+                        {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                      </button>
+                    </div>
                   </div>
                   <button type="button" className="btn-g" style={{ alignSelf: 'flex-end' }} onClick={() => { setView('forgot-password'); setError(''); setMessage(''); }}>
                     Forgot password?
@@ -294,15 +304,26 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
 
               {view === 'signup' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label htmlFor="signup-password" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Password</label>
-                  <input id="signup-password" className="field" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} />
-                  <span style={{ fontSize: '12px', color: '#7F90AB' }}>Use at least 8 characters.</span>
+                  <label htmlFor="signup-password" className="auth-form-label">Password</label>
+                  <div className="auth-password-wrap">
+                    <input id="signup-password" className="field" type={showPassword ? 'text' : 'password'} autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} />
+                    <button
+                      type="button"
+                      className="auth-password-toggle"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-pressed={showPassword}
+                      onClick={() => setShowPassword((visible) => !visible)}
+                    >
+                      {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                    </button>
+                  </div>
+                  <span className="auth-helper">Use at least 8 characters.</span>
                 </div>
               )}
 
               {(view === 'verify-signup' || view === 'verify-reset') && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label htmlFor="otp-code" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Six-digit verification code</label>
+                  <label htmlFor="otp-code" className="auth-form-label">Six-digit verification code</label>
                   <input id="otp-code" className="field" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ''))} />
                 </div>
               )}
@@ -310,18 +331,18 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
               {view === 'reset-password' && (
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label htmlFor="new-password" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>New password</label>
+                    <label htmlFor="new-password" className="auth-form-label">New password</label>
                     <input id="new-password" className="field" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label htmlFor="confirm-password" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Confirm new password</label>
+                    <label htmlFor="confirm-password" className="auth-form-label">Confirm new password</label>
                     <input id="confirm-password" className="field" type="password" autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
                   </div>
                 </>
               )}
 
-              {message && <span role="status" style={{ color: '#34D3A8', fontSize: '13px' }}>{message}</span>}
-              {error && <span role="alert" style={{ color: '#FF7A7A', fontSize: '13px' }}>{error}</span>}
+              {message && <span role="status" className="auth-status">{message}</span>}
+              {error && <span role="alert" className="auth-error">{error}</span>}
 
               <button type="submit" className="btn-p" style={{ width: '100%' }} disabled={isWorking}>
                 {isWorking ? 'Please wait...'
@@ -331,7 +352,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
                         : view === 'forgot-password' ? 'Send reset code'
                           : view === 'verify-reset' ? 'Verify code'
                             : 'Update password'}
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#06231C" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="auth-submit-arrow" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
               </button>
@@ -347,7 +368,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
               {view !== 'login' && view !== 'signup' && (
                 <button type="button" className="btn-g" onClick={showLogin}>Back to sign in</button>
               )}
-              <span style={{ fontSize: '12px', color: '#7F90AB', lineHeight: 1.5 }}>
+              <span className="auth-helper">
                 Email codes are sent to your address. Passwords are hashed in the backend; browser storage remembers only your email if you choose.
               </span>
             </form>

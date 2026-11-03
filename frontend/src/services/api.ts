@@ -110,6 +110,8 @@ export interface SafetyState {
 }
 
 export interface UserRecord {
+  account_id?: number;
+  email?: string;
   name: string;
   role: string;
   status: string;
@@ -143,9 +145,14 @@ export interface OTPChallenge {
 }
 
 export interface AuthResponse {
-  status: string;
+  status: 'success';
   access_token: string;
   user: AuthUser;
+}
+
+export interface SignupPendingResponse {
+  status: 'pending_approval';
+  message: string;
 }
 
 let authToken: string | null = null;
@@ -187,7 +194,7 @@ export const apiService = {
     return await res.json();
   },
 
-  async verifySignupOtp(email: string, challengeId: string, otp: string): Promise<AuthResponse> {
+  async verifySignupOtp(email: string, challengeId: string, otp: string): Promise<AuthResponse | SignupPendingResponse> {
     const res = await apiFetch(`${API_BASE}/auth/signup/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -385,13 +392,17 @@ export const apiService = {
     }
   },
 
-  async getUsers(): Promise<{ users: UserRecord[] } | null> {
-    try {
-      const res = await apiFetch(`${API_BASE}/admin/users`);
-      return await res.json();
-    } catch {
-      return null;
-    }
+  async getUsers(): Promise<{ users: UserRecord[] }> {
+    const res = await apiFetch(`${API_BASE}/admin/users`);
+    if (!res.ok) throw new Error(await getErrorMessage(res, `Could not load users (${res.status})`));
+    return await res.json();
+  },
+
+  async approveUser(accountId: number): Promise<void> {
+    const res = await apiFetch(`${API_BASE}/admin/users/${accountId}/approve`, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, `Could not approve account (${res.status})`));
   },
 
   async inviteUser(username: string, role: string) {

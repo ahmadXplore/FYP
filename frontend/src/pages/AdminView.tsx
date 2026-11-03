@@ -26,12 +26,16 @@ export const AdminView: React.FC = () => {
   const [newUsername, setNewUsername] = useState('');
   const [newRole, setNewRole] = useState('PSCA Operator');
   const [isInviting, setIsInviting] = useState(false);
+  const [approvingAccountId, setApprovingAccountId] = useState<number | null>(null);
+  const [userActionError, setUserActionError] = useState('');
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const res = await apiService.getUsers();
-      if (res && res.users) {
+      try {
+        const res = await apiService.getUsers();
         setUsersList(res.users);
+      } catch (reason) {
+        setUserActionError(reason instanceof Error ? reason.message : 'Could not load users');
       }
     };
     const fetchAudit = async () => {
@@ -55,6 +59,21 @@ export const AdminView: React.FC = () => {
       setShowInviteModal(false);
     }
     setIsInviting(false);
+  };
+
+  const handleApprove = async (accountId: number) => {
+    setUserActionError('');
+    setApprovingAccountId(accountId);
+    try {
+      await apiService.approveUser(accountId);
+      setUsersList((previous) => previous.map((user) => (
+        user.account_id === accountId ? { ...user, status: 'ACTIVE' } : user
+      )));
+    } catch (reason) {
+      setUserActionError(reason instanceof Error ? reason.message : 'Could not approve account');
+    } finally {
+      setApprovingAccountId(null);
+    }
   };
 
   const handleResetDemoData = () => {
@@ -224,6 +243,8 @@ export const AdminView: React.FC = () => {
             </button>
           </div>
 
+          {userActionError && <span role="alert" style={{ color: '#FF7A7A', fontSize: '13px' }}>{userActionError}</span>}
+
           {showInviteModal && (
             <form
               onSubmit={handleInvite}
@@ -273,17 +294,35 @@ export const AdminView: React.FC = () => {
                 <tr>
                   <th>Badge / Username</th>
                   <th>Assigned Role</th>
-                  <th>Credential Status</th>
+                  <th>Access Status</th>
                   <th>Last Console Session</th>
+                  <th>Request</th>
                 </tr>
               </thead>
               <tbody>
                 {usersList.map((u) => (
-                  <tr key={u.name}>
-                    <td className="mono" style={{ fontWeight: 600 }}>{u.name}</td>
+                  <tr key={u.account_id ?? u.name}>
+                    <td style={{ fontWeight: 600 }}>
+                      <div className="mono">{u.name}</div>
+                      {u.email && <div className="mono" style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>{u.email}</div>}
+                    </td>
                     <td><span className={`chip ${RC[u.role] || 'c-gray'}`}>{u.role}</span></td>
-                    <td><span className={`chip ${u.status === 'ACTIVE' ? 'c-green' : 'c-gray'}`}>{u.status}</span></td>
+                    <td><span className={`chip ${u.status === 'ACTIVE' ? 'c-green' : u.status === 'PENDING' ? 'c-blue' : 'c-gray'}`}>{u.status}</span></td>
                     <td className="mono" style={{ color: 'var(--text-secondary)' }}>{u.last}</td>
+                    <td>
+                      {u.status === 'PENDING' && u.account_id !== undefined && (
+                        <button
+                          type="button"
+                          className="btn-g"
+                          onClick={() => u.account_id !== undefined && handleApprove(u.account_id)}
+                          disabled={approvingAccountId !== null}
+                          aria-label={`Approve access for ${u.name}`}
+                        >
+                          <Check size={14} strokeWidth={1.8} />
+                          {approvingAccountId === u.account_id ? 'Approving...' : 'Approve'}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

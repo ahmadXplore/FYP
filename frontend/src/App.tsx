@@ -90,6 +90,8 @@ export function App() {
       <SignInView
         onSignIn={(token) => {
           apiService.setAuthToken(token);
+          setHasStartedEmergency(false);
+          setInitialEmergency(null);
           setAccessToken(token);
           setActivePage('dashboard');
         }}
@@ -144,6 +146,8 @@ export function App() {
             }}
             onSignOut={() => {
               apiService.setAuthToken(null);
+              setHasStartedEmergency(false);
+              setInitialEmergency(null);
               setAccessToken(null);
               setActivePage('signin');
               setSidebarOpen(false);

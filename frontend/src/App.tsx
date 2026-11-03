@@ -14,6 +14,8 @@ import { AdminView } from './pages/AdminView';
 import { EmergencyIntakeView } from './pages/EmergencyIntakeView';
 import { EmergencyRecord } from './services/api';
 
+import { apiService } from './services/api';
+
 export function App() {
   const [activePage, setActivePage] = useState<PageId>(() => {
     try {
@@ -27,6 +29,7 @@ export function App() {
   const [hasStartedEmergency, setHasStartedEmergency] = useState(false);
   const [initialEmergency, setInitialEmergency] = useState<EmergencyRecord | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
     const handleHash = () => {
@@ -82,6 +85,18 @@ export function App() {
     admin: { category: 'Administration', title: 'Admin and Audit', subtitle: 'Users, role-based access, data handling and the full decision log' },
   };
 
+  if (!accessToken) {
+    return (
+      <SignInView
+        onSignIn={(token) => {
+          apiService.setAuthToken(token);
+          setAccessToken(token);
+          setActivePage('dashboard');
+        }}
+      />
+    );
+  }
+
   if (!hasStartedEmergency) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
@@ -99,10 +114,6 @@ export function App() {
         />
       </div>
     );
-  }
-
-  if (activePage === 'signin') {
-    return <SignInView onSignIn={() => setActivePage('dashboard')} />;
   }
 
   const currentHeader = pageHeaders[activePage] || pageHeaders.dashboard;
@@ -132,6 +143,8 @@ export function App() {
               setSidebarOpen(false);
             }}
             onSignOut={() => {
+              apiService.setAuthToken(null);
+              setAccessToken(null);
               setActivePage('signin');
               setSidebarOpen(false);
             }}

@@ -4,23 +4,28 @@ AI-Based Emergency Vehicle Priority and Dynamic Green Corridor System
 Final Year Project - UMT Lahore / PSCA (PPIC3) Environment
 """
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
 import asyncio
 import math
 import sqlite3
 
+import auth_service
+from auth_service import AuthServiceError
 from database import init_db, get_connection, compute_hash
 from services.routing_engine import routing_engine
 from services.corridor_engine import corridor_engine
 from services.safety_engine import safety_engine
 from services.simulation_engine import simulation_engine
 
+
 # Initialize SQLite database on startup
 init_db()
+auth_service.init_auth_store()
 
 app = FastAPI(
     title="GreenCorridor AI Core Services",
@@ -35,6 +40,44 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+PUBLIC_AUTH_PATHS = {
+    "/api/health",
+    "/docs",
+    "/docs/oauth2-redirect",
+    "/openapi.json",
+    "/redoc",
+    "/api/auth/signup/request-otp",
+    "/api/auth/signup/verify-otp",
+    "/api/auth/login",
+    "/api/auth/forgot-password",
+    "/api/auth/verify-reset-otp",
+    "/api/auth/reset-password",
+}
+
+
+@app.middleware("http")
+async def require_authenticated_employee(request: Request, call_next):
+    if request.method == "OPTIONS" or request.url.path in PUBLIC_AUTH_PATHS:
+        return await call_next(request)
+
+    authorization = request.headers.get("Authorization", "")
+    scheme, _, token = authorization.partition(" ")
+    if scheme.casefold() != "bearer" or not token:
+        return JSONResponse(status_code=401, content={"detail": "Sign in to access this service"})
+
+    try:
+        claims = auth_service.decode_access_token(token)
+    except AuthServiceError as error:
+        return JSONResponse(status_code=error.status_code, content={"detail": error.detail})
+    if request.url.path.startswith("/api/admin/") and claims.get("role") != "admin":
+        return JSONResponse(status_code=403, content={"detail": "Admin access is required"})
+    return await call_next(request)
+
+
+@app.exception_handler(AuthServiceError)
+async def handle_auth_service_error(_, error: AuthServiceError):
+    return JSONResponse(status_code=error.status_code, content={"detail": error.detail})
 
 # -------------------------------------------------------------
 # Request & Response Schemas
@@ -51,6 +94,32 @@ class EmergencyCreateRequest(BaseModel):
 class UserInviteRequest(BaseModel):
     username: str
     role: str
+
+class SignupOTPRequest(BaseModel):
+    full_name: str
+    email: str
+    job_title: str
+    password: str
+    role: Literal["employee", "admin"]
+    department: Literal["PSCA", "1122"]
+
+class AuthLoginRequest(BaseModel):
+    email: str
+    password: str
+    role: Literal["employee", "admin"]
+    department: Literal["PSCA", "1122"]
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class OTPVerifyRequest(BaseModel):
+    email: str
+    challenge_id: str
+    otp: str
+
+class PasswordResetRequest(BaseModel):
+    reset_token: str
+    new_password: str
 
 class CorridorScrubRequest(BaseModel):
     t: int
@@ -86,6 +155,46 @@ async def start_background_simulation():
                     corridor_telemetry["t"] = 0.0
 
     asyncio.create_task(simulation_loop())
+
+# -------------------------------------------------------------
+# Employee authentication
+# -------------------------------------------------------------
+@app.post("/api/auth/signup/request-otp")
+def request_signup_otp(req: SignupOTPRequest):
+    return auth_service.request_signup_otp(
+        req.full_name,
+        req.email,
+        req.job_title,
+        req.password,
+        req.role,
+        req.department,
+    )
+
+
+@app.post("/api/auth/signup/verify-otp")
+def verify_signup_otp(req: OTPVerifyRequest):
+    return auth_service.verify_signup_otp(req.email, req.challenge_id, req.otp)
+
+
+@app.post("/api/auth/login")
+def login_employee(req: AuthLoginRequest):
+    return auth_service.login(req.email, req.password, req.role, req.department)
+
+
+@app.post("/api/auth/forgot-password")
+def request_password_reset(req: ForgotPasswordRequest):
+    return auth_service.request_password_reset(req.email)
+
+
+@app.post("/api/auth/verify-reset-otp")
+def verify_reset_otp(req: OTPVerifyRequest):
+    return auth_service.verify_reset_otp(req.email, req.challenge_id, req.otp)
+
+
+@app.post("/api/auth/reset-password")
+def reset_employee_password(req: PasswordResetRequest):
+    return auth_service.reset_password(req.reset_token, req.new_password)
+
 
 # -------------------------------------------------------------
 # 1. Health & System Status

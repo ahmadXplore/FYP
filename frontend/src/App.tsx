@@ -13,8 +13,11 @@ import { TwinView } from './pages/TwinView';
 import { EvaluationView } from './pages/EvaluationView';
 import { AdminView } from './pages/AdminView';
 
+import { apiService } from './services/api';
+
 export function App() {
-  const [activePage, setActivePage] = useState<PageId>('dashboard');
+  const [activePage, setActivePage] = useState<PageId>('signin');
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   const pageHeaders: Record<PageId, { title: string; subtitle: string }> = {
     signin: { title: 'Sign in', subtitle: 'GreenCorridor AI authentication' },
@@ -30,8 +33,12 @@ export function App() {
     admin: { title: 'Admin and Audit', subtitle: 'Users, role-based access, data handling and the full decision log' },
   };
 
-  if (activePage === 'signin') {
-    return <SignInView onSignIn={() => setActivePage('dashboard')} />;
+  if (!accessToken) {
+    return <SignInView onSignIn={(token) => {
+      apiService.setAuthToken(token);
+      setAccessToken(token);
+      setActivePage('dashboard');
+    }} />;
   }
 
   const currentHeader = pageHeaders[activePage] || pageHeaders.dashboard;
@@ -43,7 +50,11 @@ export function App() {
         <Sidebar
           active={activePage}
           onNavigate={(p) => setActivePage(p)}
-          onSignOut={() => setActivePage('signin')}
+          onSignOut={() => {
+            apiService.setAuthToken(null);
+            setAccessToken(null);
+            setActivePage('signin');
+          }}
         />
       </div>
 

@@ -115,6 +115,13 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 Backend API will be live at: `http://127.0.0.1:8000` (Swagger docs: `http://127.0.0.1:8000/docs`).
 
+### Employee and admin signup and sign-in
+Set `DATABASE_URL` in `backend\.env` to the PostgreSQL connection URL for employee accounts (the current local configuration points to SQLite). Configure `JWT_SECRET` and the existing `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, and `SMTP_USE_SSL` settings so signup and password-reset codes can be emailed. Do not commit `.env` or put secrets in frontend files.
+
+At sign-in or signup, users choose Employee or Admin and select the PSCA or 1122 department. Signup collects the user's name, official email, job title, and password, then requires a six-digit email code that expires after five minutes and allows up to five attempts. Admin self-registration is enabled; anyone who can verify an email can create an admin account, so restrict deployment access and configure `AUTH_ALLOWED_EMAIL_DOMAINS` to the official domains for both organizations. The allowlist is a comma-separated list; without it, signup verifies mailbox access but does not independently confirm employment. Admin API routes require an admin account. Passwords are bcrypt-hashed, and successful sign-in issues an eight-hour JWT used to protect API routes. “Remember credentials” saves only the email address in this browser; it never stores the password.
+
+Install the backend dependencies with `pip install -r backend\requirements.txt`.
+
 ### Step 2: Start the Frontend Dev Server
 ```bash
 cd d:\FYP\frontend

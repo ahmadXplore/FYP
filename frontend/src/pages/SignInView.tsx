@@ -1,24 +1,116 @@
 import React, { useState } from 'react';
+import { apiService } from '../services/api';
+
+type AuthView =
+  | 'login'
+  | 'signup'
+  | 'verify-signup'
+  | 'forgot-password'
+  | 'verify-reset'
+  | 'reset-password'
+  | 'save-credentials';
 
 interface SignInViewProps {
-  onSignIn: (role: string) => void;
+  onSignIn: (token: string) => void;
 }
 
 export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
-  const [role, setRole] = useState('operator');
-  const [username, setUsername] = useState('psca.operator');
-  const [password, setPassword] = useState('••••••••');
+  const [view, setView] = useState<AuthView>('login');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState(() => localStorage.getItem('greencorridor.email') || '');
+  const [jobTitle, setJobTitle] = useState('');
+  const [accountRole, setAccountRole] = useState<'employee' | 'admin'>('employee');
+  const [department, setDepartment] = useState<'PSCA' | '1122'>('1122');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [challengeId, setChallengeId] = useState('');
+  const [otp, setOtp] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [pendingToken, setPendingToken] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [isWorking, setIsWorking] = useState(false);
 
-  const roles = [
-    { id: 'admin', name: 'Admin', desc: 'Users, data adapters, audit log and full configuration.', icon: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z' },
-    { id: 'operator', name: 'PSCA Operator', desc: 'Monitor emergencies, review AI decisions, authorise signal actions.', icon: 'M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z' },
-    { id: 'traffic', name: 'Traffic Operator', desc: 'Corridor status, traffic state and signal plans.', icon: 'M9 2h6a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM12 7h.01M12 12h.01M12 17h.01' },
-    { id: 'research', name: 'Research (read-only)', desc: 'Digital twin, experiments and evaluation results only.', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' }
-  ];
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSignIn(role);
+    setError('');
+    setMessage('');
+    setIsWorking(true);
+    try {
+      if (view === 'login') {
+        const result = await apiService.login(email, password, accountRole, department);
+        setPendingToken(result.access_token);
+        setPendingEmail(email);
+        setPassword('');
+        setView('save-credentials');
+      } else if (view === 'signup') {
+        const result = await apiService.requestSignupOtp({
+          full_name: fullName,
+          email,
+          job_title: jobTitle,
+          password,
+          role: accountRole,
+          department,
+        });
+        setChallengeId(result.challenge_id);
+        setOtp('');
+        setMessage(result.message);
+        setView('verify-signup');
+      } else if (view === 'verify-signup') {
+        const result = await apiService.verifySignupOtp(email, challengeId, otp);
+        setPendingToken(result.access_token);
+        setPendingEmail(email);
+        setPassword('');
+        setView('save-credentials');
+      } else if (view === 'forgot-password') {
+        const result = await apiService.requestPasswordReset(email);
+        setChallengeId(result.challenge_id);
+        setOtp('');
+        setMessage(result.message);
+        setView('verify-reset');
+      } else if (view === 'verify-reset') {
+        const result = await apiService.verifyResetOtp(email, challengeId, otp);
+        setResetToken(result.reset_token);
+        setPassword('');
+        setConfirmPassword('');
+        setView('reset-password');
+      } else if (view === 'reset-password') {
+        if (password !== confirmPassword) {
+          throw new Error('Passwords do not match');
+        }
+        const result = await apiService.resetPassword(resetToken, password);
+        setPassword('');
+        setConfirmPassword('');
+        setResetToken('');
+        setChallengeId('');
+        setView('login');
+        setMessage(`${result.message} Sign in with your new password.`);
+      }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Authentication request failed');
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
+  const finishSignIn = (rememberEmail: boolean) => {
+    if (rememberEmail) {
+      localStorage.setItem('greencorridor.email', pendingEmail);
+    } else {
+      localStorage.removeItem('greencorridor.email');
+    }
+    apiService.setAuthToken(pendingToken);
+    onSignIn(pendingToken);
+  };
+
+  const showLogin = () => {
+    setView('login');
+    setChallengeId('');
+    setOtp('');
+    setResetToken('');
+    setError('');
+    setMessage('');
   };
 
   return (
@@ -92,7 +184,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
         </div>
       </div>
 
-      {/* Right Column: Sign In Role Selector */}
+      {/* Right Column: Employee Authentication */}
       <div
         style={{
           flex: '1 1 460px',
@@ -104,94 +196,163 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignIn }) => {
           justifyContent: 'center',
         }}
       >
-        <form
-          onSubmit={handleSubmit}
-          style={{ width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', gap: '24px' }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>Sign in</h2>
-            <span style={{ fontSize: '14px', color: '#A3B2CA' }}>Choose a role to preview what each user sees.</span>
-          </div>
+        <div style={{ width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {view === 'save-credentials' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>Save your credentials?</h2>
+                <span style={{ fontSize: '14px', color: '#A3B2CA' }}>
+                  Remember {pendingEmail} on this device for your next sign-in. Your password is never saved in the browser.
+                </span>
+              </div>
+              <button type="button" className="btn-p" style={{ width: '100%' }} onClick={() => finishSignIn(true)}>
+                Remember email and continue
+              </button>
+              <button type="button" className="btn-g" style={{ width: '100%' }} onClick={() => finishSignIn(false)}>
+                Do not save and continue
+              </button>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>
+                  {view === 'login' ? `${accountRole === 'admin' ? 'Admin' : 'Employee'} sign in`
+                    : view === 'signup' ? 'Create your account'
+                      : view === 'verify-signup' ? 'Verify your email'
+                        : view === 'forgot-password' ? 'Forgot password'
+                          : view === 'verify-reset' ? 'Verify reset code'
+                            : 'Choose a new password'}
+                </h2>
+                <span style={{ fontSize: '14px', color: '#A3B2CA' }}>
+                  {view === 'login' ? `Sign in with your ${department} ${accountRole === 'admin' ? 'admin' : 'employee'} account.`
+                    : view === 'signup' ? `Create a ${department} ${accountRole === 'admin' ? 'admin' : 'employee'} account.`
+                      : view === 'verify-signup' ? `Enter the six-digit code sent to ${email}.`
+                        : view === 'forgot-password' ? 'Enter the official email address on your account.'
+                          : view === 'verify-reset' ? `Enter the reset code sent to ${email}.`
+                            : 'Enter and confirm your new password.'}
+                </span>
+              </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} role="group" aria-label="Role">
-            {roles.map((r) => {
-              const on = role === r.id;
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  className={`pick ${on ? 'pick-on' : ''}`}
-                  onClick={() => {
-                    setRole(r.id);
-                    if (r.id === 'operator') setUsername('psca.operator');
-                    else if (r.id === 'admin') setUsername('demo.admin');
-                    else if (r.id === 'traffic') setUsername('traffic.operator');
-                    else setUsername('research.viewer');
-                  }}
-                  aria-pressed={on}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={on ? '#34D3A8' : '#A3B2CA'}
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    style={{ flex: 'none', marginTop: '1px' }}
-                  >
-                    <path d={r.icon} />
-                  </svg>
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontWeight: 600, fontSize: '15px' }}>{r.name}</span>
-                    <span style={{ fontSize: '13px', color: '#A3B2CA', lineHeight: 1.4 }}>{r.desc}</span>
-                  </span>
+              {['login', 'signup'].includes(view) && (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label htmlFor="account-type" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Account type</label>
+                    <select id="account-type" className="field" value={accountRole} onChange={(event) => setAccountRole(event.target.value === 'admin' ? 'admin' : 'employee')}>
+                      <option value="employee">Employee</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label htmlFor="department" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Department</label>
+                    <select id="department" className="field" value={department} onChange={(event) => setDepartment(event.target.value === 'PSCA' ? 'PSCA' : '1122')}>
+                      <option value="PSCA">PSCA</option>
+                      <option value="1122">1122</option>
+                    </select>
+                  </div>
+                  {view === 'signup' && accountRole === 'admin' && (
+                    <span style={{ fontSize: '12px', color: '#F6B93B' }}>
+                      Admin self-registration is enabled. Admin access should only be used by trusted personnel.
+                    </span>
+                  )}
+                </>
+              )}
+
+              {view === 'signup' && (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label htmlFor="full-name" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Full name</label>
+                    <input id="full-name" className="field" type="text" autoComplete="name" maxLength={120} required value={fullName} onChange={(event) => setFullName(event.target.value)} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label htmlFor="job-title" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Job title</label>
+                    <input id="job-title" className="field" type="text" autoComplete="organization-title" maxLength={120} required value={jobTitle} onChange={(event) => setJobTitle(event.target.value)} />
+                  </div>
+                </>
+              )}
+
+              {['login', 'signup', 'forgot-password'].includes(view) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label htmlFor="official-email" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Official email address</label>
+                  <input id="official-email" className="field" type="email" autoComplete="email" maxLength={254} required value={email} onChange={(event) => setEmail(event.target.value)} />
+                </div>
+              )}
+
+              {view === 'login' && (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label htmlFor="login-password" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Password</label>
+                    <input id="login-password" className="field" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
+                  </div>
+                  <button type="button" className="btn-g" style={{ alignSelf: 'flex-end' }} onClick={() => { setView('forgot-password'); setError(''); setMessage(''); }}>
+                    Forgot password?
+                  </button>
+                </>
+              )}
+
+              {view === 'signup' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label htmlFor="signup-password" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Password</label>
+                  <input id="signup-password" className="field" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} />
+                  <span style={{ fontSize: '12px', color: '#7F90AB' }}>Use at least 8 characters.</span>
+                </div>
+              )}
+
+              {(view === 'verify-signup' || view === 'verify-reset') && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label htmlFor="otp-code" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Six-digit verification code</label>
+                  <input id="otp-code" className="field" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ''))} />
+                </div>
+              )}
+
+              {view === 'reset-password' && (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label htmlFor="new-password" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>New password</label>
+                    <input id="new-password" className="field" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label htmlFor="confirm-password" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Confirm new password</label>
+                    <input id="confirm-password" className="field" type="password" autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+                  </div>
+                </>
+              )}
+
+              {message && <span role="status" style={{ color: '#34D3A8', fontSize: '13px' }}>{message}</span>}
+              {error && <span role="alert" style={{ color: '#FF7A7A', fontSize: '13px' }}>{error}</span>}
+
+              <button type="submit" className="btn-p" style={{ width: '100%' }} disabled={isWorking}>
+                {isWorking ? 'Please wait...'
+                  : view === 'login' ? 'Sign in'
+                    : view === 'signup' ? 'Continue to email verification'
+                      : view === 'verify-signup' ? 'Verify and create account'
+                        : view === 'forgot-password' ? 'Send reset code'
+                          : view === 'verify-reset' ? 'Verify code'
+                            : 'Update password'}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#06231C" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </button>
+
+              {view === 'login' && (
+                <button type="button" className="btn-g" onClick={() => { setView('signup'); setError(''); setMessage(''); }}>
+                  New {accountRole === 'admin' ? 'admin' : 'employee'}? Create an account
                 </button>
-              );
-            })}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label htmlFor="u" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Username</label>
-              <input
-                id="u"
-                className="field"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label htmlFor="p" style={{ fontSize: '13px', fontWeight: 600, color: '#A3B2CA' }}>Password</label>
-              <input
-                id="p"
-                className="field"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <button type="submit" className="btn-p" style={{ width: '100%' }}>
-            Sign in to Command Center
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#06231C" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </button>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '12px', color: '#A3B2CA' }}>
-            <span style={{ padding: '4px 10px', border: '1px solid #243350', borderRadius: '999px' }}>Offline-first</span>
-            <span style={{ padding: '4px 10px', border: '1px solid #243350', borderRadius: '999px' }}>Role-based access</span>
-            <span style={{ padding: '4px 10px', border: '1px solid #243350', borderRadius: '999px' }}>Every action audit-logged</span>
-          </div>
-          <span style={{ fontSize: '12px', color: '#7F90AB', lineHeight: 1.5 }}>
-            Prototype only: no real authentication. PSCA is the proposed environment, not a confirmed partner.
-          </span>
-        </form>
+              )}
+              {view === 'signup' && (
+                <button type="button" className="btn-g" onClick={showLogin}>Back to sign in</button>
+              )}
+              {view !== 'login' && view !== 'signup' && (
+                <button type="button" className="btn-g" onClick={showLogin}>Back to sign in</button>
+              )}
+              <span style={{ fontSize: '12px', color: '#7F90AB', lineHeight: 1.5 }}>
+                Email codes are sent to your address. Passwords are hashed in the backend; browser storage remembers only your email if you choose.
+              </span>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

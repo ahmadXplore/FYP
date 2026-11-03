@@ -14,6 +14,18 @@ export interface EmergencyRecord {
   notes?: string;
 }
 
+export interface CreatedEmergency {
+  id: string;
+  type: string;
+  priority: string;
+  ambulance: string;
+  destination: string;
+  caller_location: string;
+  status: string;
+  notes?: string;
+  time_str: string;
+}
+
 export interface HospitalRoute {
   id: string;
   name: string;
@@ -115,10 +127,119 @@ export interface SimulationResult {
   p_value?: string;
 }
 
+export interface AuthUser {
+  full_name: string;
+  official_email: string;
+  job_title: string;
+  role: 'employee' | 'admin';
+  department: 'PSCA' | '1122';
+}
+
+export interface OTPChallenge {
+  status: string;
+  challenge_id: string;
+  expires_in_seconds: number;
+  message: string;
+}
+
+export interface AuthResponse {
+  status: string;
+  access_token: string;
+  user: AuthUser;
+}
+
+let authToken: string | null = null;
+
+function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  if (authToken) headers.set('Authorization', `Bearer ${authToken}`);
+  return fetch(input, { ...init, headers });
+}
+
+async function getErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const error = await res.json();
+    return error.detail || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export const apiService = {
+  setAuthToken(token: string | null) {
+    authToken = token;
+  },
+
+  async requestSignupOtp(data: {
+    full_name: string;
+    email: string;
+    job_title: string;
+    password: string;
+    role: 'employee' | 'admin';
+    department: 'PSCA' | '1122';
+  }): Promise<OTPChallenge> {
+    const res = await apiFetch(`${API_BASE}/auth/signup/request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, `Could not send verification code (${res.status})`));
+    return await res.json();
+  },
+
+  async verifySignupOtp(email: string, challengeId: string, otp: string): Promise<AuthResponse> {
+    const res = await apiFetch(`${API_BASE}/auth/signup/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, challenge_id: challengeId, otp }),
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, `Could not verify code (${res.status})`));
+    return await res.json();
+  },
+
+  async login(email: string, password: string, role: 'employee' | 'admin', department: 'PSCA' | '1122'): Promise<AuthResponse> {
+    const res = await apiFetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, role, department }),
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, `Could not sign in (${res.status})`));
+    return await res.json();
+  },
+
+  async requestPasswordReset(email: string): Promise<OTPChallenge> {
+    const res = await apiFetch(`${API_BASE}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, `Could not request a reset code (${res.status})`));
+    return await res.json();
+  },
+
+  async verifyResetOtp(email: string, challengeId: string, otp: string): Promise<{ status: string; reset_token: string }> {
+    const res = await apiFetch(`${API_BASE}/auth/verify-reset-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, challenge_id: challengeId, otp }),
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, `Could not verify code (${res.status})`));
+    return await res.json();
+  },
+
+  async resetPassword(resetToken: string, newPassword: string): Promise<{ status: string; message: string }> {
+    const res = await apiFetch(`${API_BASE}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reset_token: resetToken, new_password: newPassword }),
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, `Could not reset password (${res.status})`));
+    return await res.json();
+  },
+
   async getHealth() {
     try {
-      const res = await fetch(`${API_BASE}/health`);
+      const res = await apiFetch(`${API_BASE}/health`);
       return await res.json();
     } catch {
       return { status: 'healthy', mode: 'Mode 2 · Digital Twin (SUMO TraCI)' };
@@ -127,7 +248,7 @@ export const apiService = {
 
   async getDashboard() {
     try {
-      const res = await fetch(`${API_BASE}/dashboard`);
+      const res = await apiFetch(`${API_BASE}/dashboard`);
       return await res.json();
     } catch {
       return null;
@@ -136,7 +257,7 @@ export const apiService = {
 
   async toggleIncident() {
     try {
-      const res = await fetch(`${API_BASE}/dashboard/incident`, { method: 'POST' });
+      const res = await apiFetch(`${API_BASE}/dashboard/incident`, { method: 'POST' });
       return await res.json();
     } catch {
       return null;
@@ -144,39 +265,31 @@ export const apiService = {
   },
 
   async getEmergencies(): Promise<{ emergencies: EmergencyRecord[] } | null> {
-    try {
-      const res = await fetch(`${API_BASE}/emergencies`);
-      return await res.json();
-    } catch {
-      return null;
-    }
+    const res = await apiFetch(`${API_BASE}/emergencies`);
+    if (!res.ok) throw new Error(`Could not load emergencies (${res.status})`);
+    return await res.json();
   },
 
-  async createEmergency(data: { location: string; type: string; priority: string; ambulance: string; destination?: string; notes?: string }) {
-    try {
-      const res = await fetch(`${API_BASE}/emergencies`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      return await res.json();
-    } catch {
-      return null;
-    }
+  async createEmergency(data: { location: string; type: string; priority: string; ambulance: string; destination?: string; notes?: string }): Promise<{ status: string; emergency: CreatedEmergency }> {
+    const res = await apiFetch(`${API_BASE}/emergencies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`Could not create emergency (${res.status})`);
+    return await res.json();
   },
 
-  async getRouting(): Promise<{ hospitals: HospitalRoute[]; incident_active: boolean } | null> {
-    try {
-      const res = await fetch(`${API_BASE}/routing`);
-      return await res.json();
-    } catch {
-      return null;
-    }
+  async getRouting(emergencyType?: string): Promise<{ hospitals: HospitalRoute[]; incident_active: boolean }> {
+    const query = emergencyType ? `?emergency_type=${encodeURIComponent(emergencyType)}` : '';
+    const res = await apiFetch(`${API_BASE}/routing${query}`);
+    if (!res.ok) throw new Error(`Could not load hospital route predictions (${res.status})`);
+    return await res.json();
   },
 
   async scrubCorridor(t: number, lead: number, hold: number) {
     try {
-      const res = await fetch(`${API_BASE}/corridor/scrub`, {
+      const res = await apiFetch(`${API_BASE}/corridor/scrub`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ t, lead, hold }),
@@ -189,7 +302,7 @@ export const apiService = {
 
   async getPerceptionCameras(): Promise<{ cameras: CameraFeed[] } | null> {
     try {
-      const res = await fetch(`${API_BASE}/perception/cameras`);
+      const res = await apiFetch(`${API_BASE}/perception/cameras`);
       return await res.json();
     } catch {
       return null;
@@ -198,7 +311,7 @@ export const apiService = {
 
   async getCameraDetections(cameraId: string): Promise<{ camera_id: string; detections: DetectionBox[] } | null> {
     try {
-      const res = await fetch(`${API_BASE}/perception/detections/${cameraId}`);
+      const res = await apiFetch(`${API_BASE}/perception/detections/${cameraId}`);
       return await res.json();
     } catch {
       return null;
@@ -207,7 +320,7 @@ export const apiService = {
 
   async getPredictionForecast(segmentId: string = 'SEG-I2-I3'): Promise<{ segment_id: string; points: ForecastPoint[]; metrics: any } | null> {
     try {
-      const res = await fetch(`${API_BASE}/prediction/forecast?segment_id=${segmentId}`);
+      const res = await apiFetch(`${API_BASE}/prediction/forecast?segment_id=${segmentId}`);
       return await res.json();
     } catch {
       return null;
@@ -216,7 +329,7 @@ export const apiService = {
 
   async getSafety(): Promise<SafetyState | null> {
     try {
-      const res = await fetch(`${API_BASE}/safety`);
+      const res = await apiFetch(`${API_BASE}/safety`);
       return await res.json();
     } catch {
       return null;
@@ -225,7 +338,7 @@ export const apiService = {
 
   async authorizeCommand(id: string) {
     try {
-      const res = await fetch(`${API_BASE}/safety/authorize/${id}`, { method: 'POST' });
+      const res = await apiFetch(`${API_BASE}/safety/authorize/${id}`, { method: 'POST' });
       return await res.json();
     } catch {
       return null;
@@ -234,7 +347,7 @@ export const apiService = {
 
   async rejectCommand(id: string) {
     try {
-      const res = await fetch(`${API_BASE}/safety/reject/${id}`, { method: 'POST' });
+      const res = await apiFetch(`${API_BASE}/safety/reject/${id}`, { method: 'POST' });
       return await res.json();
     } catch {
       return null;
@@ -243,7 +356,7 @@ export const apiService = {
 
   async getTwinBenchmarks(scenario: string = 'peak') {
     try {
-      const res = await fetch(`${API_BASE}/twin/benchmarks?scenario=${scenario}`);
+      const res = await apiFetch(`${API_BASE}/twin/benchmarks?scenario=${scenario}`);
       return await res.json();
     } catch {
       return null;
@@ -252,7 +365,7 @@ export const apiService = {
 
   async runSimulation(scenario: string, strategy: string): Promise<SimulationResult | null> {
     try {
-      const res = await fetch(`${API_BASE}/twin/simulate`, {
+      const res = await apiFetch(`${API_BASE}/twin/simulate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenario, strategy }),
@@ -265,7 +378,7 @@ export const apiService = {
 
   async getEvaluationRQ() {
     try {
-      const res = await fetch(`${API_BASE}/evaluation/rq`);
+      const res = await apiFetch(`${API_BASE}/evaluation/rq`);
       return await res.json();
     } catch {
       return null;
@@ -274,7 +387,7 @@ export const apiService = {
 
   async getUsers(): Promise<{ users: UserRecord[] } | null> {
     try {
-      const res = await fetch(`${API_BASE}/admin/users`);
+      const res = await apiFetch(`${API_BASE}/admin/users`);
       return await res.json();
     } catch {
       return null;
@@ -283,7 +396,7 @@ export const apiService = {
 
   async inviteUser(username: string, role: string) {
     try {
-      const res = await fetch(`${API_BASE}/admin/users/invite`, {
+      const res = await apiFetch(`${API_BASE}/admin/users/invite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, role }),

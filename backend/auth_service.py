@@ -239,7 +239,7 @@ def _send_otp_email(email: str, otp: str, purpose: str) -> None:
     settings = _SETTINGS
     host = settings.get("SMTP_HOST", "")
     username = settings.get("SMTP_USERNAME", "")
-    password = settings.get("SMTP_PASSWORD", "")
+    password = "".join(settings.get("SMTP_PASSWORD", "").split())
     sender = settings.get("SMTP_FROM", "") or username
     if not host or not username or not password or not sender:
         raise AuthServiceError(503, "Email delivery is not configured; check the SMTP settings in backend/.env")
@@ -260,20 +260,48 @@ def _send_otp_email(email: str, otp: str, purpose: str) -> None:
     )
 
     use_ssl = settings.get("SMTP_USE_SSL", "").strip().casefold() in {"1", "true", "yes", "on"}
+    stage = "connection"
     try:
         if use_ssl:
             with smtplib.SMTP_SSL(host, port, timeout=15) as smtp:
+                stage = "authentication"
                 smtp.login(username, password)
+                stage = "email delivery"
                 smtp.send_message(message)
         else:
             with smtplib.SMTP(host, port, timeout=15) as smtp:
                 smtp.ehlo()
+                stage = "TLS setup"
                 smtp.starttls()
                 smtp.ehlo()
+                stage = "authentication"
                 smtp.login(username, password)
+                stage = "email delivery"
                 smtp.send_message(message)
+    except smtplib.SMTPAuthenticationError as error:
+        raise AuthServiceError(
+            503,
+            "SMTP authentication was rejected; check SMTP_USERNAME and use a valid provider-issued app password.",
+        ) from error
+    except smtplib.SMTPSenderRefused as error:
+        raise AuthServiceError(
+            503,
+            "SMTP_FROM was rejected; set it to SMTP_USERNAME or an authorized sender alias.",
+        ) from error
+    except smtplib.SMTPServerDisconnected as error:
+        if stage == "authentication":
+            detail = (
+                "SMTP disconnected during authentication; verify SMTP_USERNAME and the provider-issued "
+                "app password. Set SMTP_FROM to SMTP_USERNAME or an authorized sender alias."
+            )
+        else:
+            detail = f"SMTP disconnected during {stage}; check the SMTP host, port, and TLS settings."
+        raise AuthServiceError(503, detail) from error
     except (OSError, smtplib.SMTPException) as error:
-        raise AuthServiceError(503, "Could not send verification email; check SMTP settings and try again") from error
+        raise AuthServiceError(
+            503,
+            f"Could not send verification email during {stage}; check SMTP settings and try again.",
+        ) from error
 
 
 def _new_otp() -> str:

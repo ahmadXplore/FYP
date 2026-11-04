@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard,
+  PhoneCall,
   Navigation,
   GitBranch,
   Video,
@@ -17,6 +18,7 @@ import {
 
 export type PageId =
   | 'signin'
+  | 'emergencies'
   | 'dashboard'
   | 'routing'
   | 'corridor'
@@ -46,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       label: 'Operations',
       items: [
+        { id: 'emergencies' as PageId, label: 'Emergencies', icon: PhoneCall },
         { id: 'dashboard' as PageId, label: 'Command Center', icon: LayoutDashboard },
         { id: 'routing' as PageId, label: 'Routing & Hospitals', icon: Navigation },
         { id: 'corridor' as PageId, label: 'Green Corridor', icon: GitBranch },

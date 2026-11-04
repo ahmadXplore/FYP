@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { apiService, EmergencyRecord, HospitalRoute } from '../services/api';
 import { Shield, AlertCircle, PhoneCall, Activity, ChevronRight, X } from 'lucide-react';
+import { Incoming1122Request } from './EmergenciesView';
 
 export type EmergencySource = '1122' | 'anomaly';
 
 interface EmergencyIntakeViewProps {
   initialSource: EmergencySource;
+  initialRequest?: Incoming1122Request;
   presentation?: 'dialog' | 'page';
   onCreated: (emergency: EmergencyRecord) => void;
   onCancel?: () => void;
@@ -28,16 +30,17 @@ const sourceDetails: Record<EmergencySource, { label: string; location: string; 
 
 export const EmergencyIntakeView: React.FC<EmergencyIntakeViewProps> = ({
   initialSource,
+  initialRequest,
   presentation = 'dialog',
   onCreated,
   onCancel,
 }) => {
   const [source, setSource] = useState(initialSource);
-  const [priority, setPriority] = useState('P1');
-  const [ambulance, setAmbulance] = useState('AMB-017');
-  const [location, setLocation] = useState(sourceDetails[initialSource].location);
-  const [type, setType] = useState(sourceDetails[initialSource].type);
-  const [notes, setNotes] = useState(sourceDetails[initialSource].notes);
+  const [priority, setPriority] = useState(initialRequest?.priority ?? 'P1');
+  const [ambulance, setAmbulance] = useState(initialRequest?.ambulance ?? 'AMB-017');
+  const [location, setLocation] = useState(initialRequest?.location ?? sourceDetails[initialSource].location);
+  const [type, setType] = useState(initialRequest?.type ?? sourceDetails[initialSource].type);
+  const [notes, setNotes] = useState(initialRequest?.notes ?? sourceDetails[initialSource].notes);
   const [hospitals, setHospitals] = useState<HospitalRoute[]>([]);
   const [selectedHospitalId, setSelectedHospitalId] = useState('');
   const [isLoadingHospitals, setIsLoadingHospitals] = useState(true);
@@ -94,7 +97,7 @@ export const EmergencyIntakeView: React.FC<EmergencyIntakeViewProps> = ({
         priority,
         ambulance,
         destination: selectedHospital?.name,
-        notes: [sourceNote, notes.trim()].filter(Boolean).join(' · '),
+        notes: [sourceNote, initialRequest ? `Dispatch request: ${initialRequest.id}` : '', notes.trim()].filter(Boolean).join(' · '),
       });
       const record = response.emergency;
       onCreated({
@@ -220,36 +223,43 @@ export const EmergencyIntakeView: React.FC<EmergencyIntakeViewProps> = ({
             )}
           </div>
 
-          {/* Source toggle */}
-          <div role="group" aria-label="Incident Source" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-            {(['1122', 'anomaly'] as EmergencySource[]).map((value) => {
-              const isSel = source === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  className={`pick ${isSel ? 'pick-on' : ''}`}
-                  onClick={() => changeSource(value)}
-                  aria-pressed={isSel}
-                  style={{
-                    flex: '1 1 200px',
-                    padding: '10px 14px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {value === '1122' ? <PhoneCall size={18} strokeWidth={1.5} style={{ color: 'var(--primary)' }} /> : <Activity size={18} strokeWidth={1.5} style={{ color: 'var(--warning)' }} />}
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontWeight: 600, fontSize: '13px' }}>{sourceDetails[value].label}</span>
-                      <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
-                        {value === '1122' ? 'Direct 1122 emergency operator call' : 'Real-time trajectory obstruction warning'}
-                      </span>
+          {initialRequest && (
+            <div style={{ padding: '10px 12px', borderLeft: '3px solid var(--primary)', background: 'var(--navy-50)', color: 'var(--text-secondary)', fontSize: '13px' }}>
+              Details prefilled from 1122 dispatch request <strong className="mono">{initialRequest.id}</strong>. Verify the incident details and select a hospital before authorizing.
+            </div>
+          )}
+
+          {!initialRequest && (
+            <div role="group" aria-label="Incident Source" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              {(['1122', 'anomaly'] as EmergencySource[]).map((value) => {
+                const isSel = source === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`pick ${isSel ? 'pick-on' : ''}`}
+                    onClick={() => changeSource(value)}
+                    aria-pressed={isSel}
+                    style={{
+                      flex: '1 1 200px',
+                      padding: '10px 14px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      {value === '1122' ? <PhoneCall size={18} strokeWidth={1.5} style={{ color: 'var(--primary)' }} /> : <Activity size={18} strokeWidth={1.5} style={{ color: 'var(--warning)' }} />}
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 600, fontSize: '13px' }}>{sourceDetails[value].label}</span>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
+                          {value === '1122' ? 'Direct 1122 emergency operator call' : 'Real-time trajectory obstruction warning'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span className="lbl">Incident / Pickup Location</span>
@@ -323,7 +333,11 @@ export const EmergencyIntakeView: React.FC<EmergencyIntakeViewProps> = ({
           )}
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'flex-end', paddingTop: '8px' }}>
-            {!isPage && (
+            {initialRequest ? (
+              <button type="button" className="btn-g" onClick={() => onCancel?.()}>
+                Back to Emergencies
+              </button>
+            ) : !isPage && (
               <button type="button" className="btn-g" onClick={() => onCancel?.()}>
                 Cancel
               </button>

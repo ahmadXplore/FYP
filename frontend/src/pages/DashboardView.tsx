@@ -286,7 +286,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialEmergency =
               fontWeight: 700,
             }}
           >
-            <span>Register 1122 Incident</span>
+            <span>Register Incident</span>
             <ArrowRight size={16} strokeWidth={1.5} />
           </button>
         </div>
@@ -409,7 +409,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialEmergency =
                 </button>
                 {corridorReady && (
                   <button type="button" className="btn-g" onClick={() => onNavigate('corridor')}>
-                    Open Corridor Planner →
+                    Planner View →
                   </button>
                 )}
                 {corridorError && (

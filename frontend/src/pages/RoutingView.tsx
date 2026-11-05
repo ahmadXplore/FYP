@@ -423,7 +423,7 @@ export const RoutingView: React.FC<RoutingViewProps> = ({ onNavigate }) => {
             className="btn-p"
             style={{ width: '100%', gap: '8px' }}
           >
-            <span>Plan Green Wave Corridor</span>
+            <span>Planner View</span>
             <ArrowRight size={16} strokeWidth={1.5} />
           </button>
         </section>

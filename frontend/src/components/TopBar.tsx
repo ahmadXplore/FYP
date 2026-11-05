@@ -1,20 +1,18 @@
 import React from 'react';
-import { Menu, Shield, Moon, Sun, CheckCircle2, SlidersHorizontal } from 'lucide-react';
+import { Menu, Shield, SlidersHorizontal } from 'lucide-react';
 
 interface TopBarProps {
   title: string;
   subtitle: string;
   category?: string;
-  darkMode?: boolean;
-  onToggleDark?: () => void;
+  sidebarOpen?: boolean;
   onToggleSidebar?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
   title,
   subtitle,
-  darkMode = false,
-  onToggleDark,
+  sidebarOpen = false,
   onToggleSidebar,
 }) => {
   return (
@@ -34,14 +32,15 @@ export const TopBar: React.FC<TopBarProps> = ({
           color: '#FFFFFF',
         }}
       >
-        {/* Left: Mobile menu toggle + Page title */}
+        {/* Navigation menu toggle + Page title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
           {onToggleSidebar && (
             <button
               type="button"
               onClick={onToggleSidebar}
               aria-label="Toggle Navigation Menu"
-              className="md:hidden"
+              aria-controls="app-sidebar"
+              aria-expanded={sidebarOpen}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -53,6 +52,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                 border: '1px solid rgba(255,255,255,0.15)',
                 color: '#FFFFFF',
                 cursor: 'pointer',
+                position: 'relative',
+                zIndex: 40,
               }}
             >
               <Menu size={18} strokeWidth={1.5} />
@@ -150,28 +151,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span>PSCA Officer</span>
           </div>
 
-          {/* Operations Mode Toggle */}
-          {onToggleDark && (
-            <button
-              type="button"
-              onClick={onToggleDark}
-              aria-label={darkMode ? 'Switch to Light Mode' : 'Switch to Operations Mode (Dark)'}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '32px',
-                height: '30px',
-                borderRadius: '2px',
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                color: '#FFFFFF',
-                cursor: 'pointer',
-              }}
-            >
-              {darkMode ? <Sun size={15} strokeWidth={1.5} /> : <Moon size={15} strokeWidth={1.5} />}
-            </button>
-          )}
         </div>
       </header>
 

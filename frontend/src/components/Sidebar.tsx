@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   PhoneCall,
   Navigation,
-  GitBranch,
   Video,
   TrendingUp,
   ShieldCheck,
@@ -13,7 +12,7 @@ import {
   LogOut,
   Shield,
   Sun,
-  Moon
+  Moon,
 } from 'lucide-react';
 
 export type PageId =
@@ -51,7 +50,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'emergencies' as PageId, label: 'Emergencies', icon: PhoneCall },
         { id: 'dashboard' as PageId, label: 'Command Center', icon: LayoutDashboard },
         { id: 'routing' as PageId, label: 'Routing & Hospitals', icon: Navigation },
-        { id: 'corridor' as PageId, label: 'Green Corridor', icon: GitBranch },
       ],
     },
     {
@@ -80,6 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside
       aria-label="Navigation Sidebar"
+      id="navigation-sidebar"
       style={{
         width: '100%',
         minHeight: '100vh',

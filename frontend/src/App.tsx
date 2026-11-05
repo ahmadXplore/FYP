@@ -30,7 +30,7 @@ export function App() {
   const [initialEmergency, setInitialEmergency] = useState<EmergencyRecord | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<Incoming1122Request | null>(null);
   const [completedRequestIds, setCompletedRequestIds] = useState<string[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 900);
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -107,21 +107,13 @@ export function App() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', color: 'var(--text)' }}>
-      {/* Classification banner across the very top */}
-      <div className="classification-banner" role="banner">
-        Final Year Project, UMT Lahore. Proposed deployment environment: PSCA PPIC3. Simulation and sandbox data only.
-      </div>
-
       <div style={{ display: 'flex', flex: 1, minHeight: 0, position: 'relative' }}>
         {/* Sidebar container */}
         <div
-          className={`sidebar-nav ${sidebarOpen ? 'sidebar-open' : ''}`}
-          style={{
-            flex: '0 0 260px',
-            maxWidth: '260px',
-            minWidth: '240px',
-            zIndex: 30,
-          }}
+          id="app-sidebar"
+          className={`sidebar-nav ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}
+          aria-hidden={!sidebarOpen}
+          inert={!sidebarOpen}
         >
           <Sidebar
             active={activePage}
@@ -148,12 +140,7 @@ export function App() {
         {sidebarOpen && (
           <div
             onClick={() => setSidebarOpen(false)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(11, 12, 12, 0.6)',
-              zIndex: 25,
-            }}
+            className="sidebar-backdrop"
             aria-hidden="true"
           />
         )}
@@ -165,8 +152,7 @@ export function App() {
               title={currentHeader.title}
               subtitle={currentHeader.subtitle}
               category={currentHeader.category}
-              darkMode={darkMode}
-              onToggleDark={toggleDarkMode}
+              sidebarOpen={sidebarOpen}
               onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
             />
           </div>

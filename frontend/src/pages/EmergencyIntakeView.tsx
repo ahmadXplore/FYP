@@ -122,6 +122,7 @@ export const EmergencyIntakeView: React.FC<EmergencyIntakeViewProps> = ({
 
   const isPage = presentation === 'page';
   const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s`;
+  const formatCostTime = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 
   return (
     <div
@@ -501,36 +502,58 @@ export const EmergencyIntakeView: React.FC<EmergencyIntakeViewProps> = ({
               </div>
 
               {showHospitalDetails && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '4px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                    {selectedHospital.insight}
-                  </span>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '4px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <div>
+                      <span className="lbl">Cost Function Rationale</span>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>
+                        Why this route? Objective Function Cost Breakdown
+                      </h3>
+                    </div>
+                    <span className="mono" style={{ fontSize: '14px', fontWeight: 700 }}>
+                      {formatCostTime(selectedHospital.total_sec)} Total Route Cost
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', height: '12px', borderRadius: '2px', overflow: 'hidden', background: 'var(--border-subtle)' }}>
                     {[
-                      { label: 'Free-flow Travel', value: formatTime(selectedHospital.travel_time_sec) },
-                      { label: 'Congestion Penalty', value: formatTime(selectedHospital.cong_penalty_sec) },
-                      { label: 'Signal Hold Delay', value: formatTime(selectedHospital.signal_delay_sec) },
-                      { label: 'Shortest Route Time', value: formatTime(selectedHospital.short_dist_sec) },
-                      { label: 'Corridor Distance', value: `${selectedHospital.dist} km` },
-                      { label: 'Capacity Status', value: selectedHospital.cap },
-                    ].map((detail) => (
+                      { value: selectedHospital.travel_time_sec, color: 'var(--primary)' },
+                      { value: selectedHospital.cong_penalty_sec, color: 'var(--warning)' },
+                      { value: selectedHospital.signal_delay_sec, color: 'var(--navy-600)' },
+                    ].map((cost, index) => (
                       <div
-                        key={detail.label}
+                        key={index}
                         style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '2px',
-                          padding: '8px 10px',
-                          borderRadius: '4px',
-                          background: 'var(--surface)',
-                          border: '1px solid var(--border-subtle)',
+                          height: '100%',
+                          width: `${(cost.value / selectedHospital.total_sec) * 100}%`,
+                          background: cost.color,
                         }}
-                      >
-                        <span className="lbl" style={{ fontSize: '10px' }}>{detail.label}</span>
-                        <span className="mono" style={{ fontSize: '13px', fontWeight: 600 }}>{detail.value}</span>
+                      />
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px' }}>
+                    {[
+                      { label: 'Free-flow Travel Time', value: selectedHospital.travel_time_sec, color: 'var(--primary)' },
+                      { label: 'Traffic Congestion Delay', value: selectedHospital.cong_penalty_sec, color: 'var(--warning)' },
+                      { label: 'Intersection Hold Delay', value: selectedHospital.signal_delay_sec, color: 'var(--navy-600)' },
+                    ].map((cost) => (
+                      <div key={cost.label} style={{ flex: '1 1 140px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '1px', background: cost.color }} />
+                          {cost.label}
+                        </span>
+                        <span className="mono" style={{ fontSize: '16px', fontWeight: 700 }}>
+                          {formatCostTime(cost.value)}
+                        </span>
                       </div>
                     ))}
                   </div>
+
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    Cost formula: <code>Cost(e) = T_travel(e) + W_cong · Delay_cong(e) + W_sig · Delay_sig(e)</code>.
+                    Evaluated by the traffic-weighted A* solver with live TraCI speed feedback.
+                  </span>
                 </div>
               )}
             </div>

@@ -115,6 +115,47 @@
   font-weight: 600;
 }
 
+.auth-credential-indicator {
+  display: inline-flex;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.auth-credential-matched,
+.auth-password-rule-valid {
+  color: var(--success);
+}
+
+.auth-credential-invalid,
+.auth-password-rule-invalid {
+  color: var(--danger);
+}
+
+.auth-password-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.auth-password-rules li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.auth-password-rule-neutral {
+  color: var(--text-secondary);
+}
+
+.auth-password-rule-dot {
+  width: 14px;
+  text-align: center;
+}
+
 .auth-password-wrap {
   position: relative;
 }

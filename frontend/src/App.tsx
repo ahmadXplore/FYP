@@ -31,7 +31,7 @@ export function App() {
   const [selectedRequest, setSelectedRequest] = useState<Incoming1122Request | null>(null);
   const [completedRequestIds, setCompletedRequestIds] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 900);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(() => apiService.getAuthToken());
 
   useEffect(() => {
     const handleHash = () => {

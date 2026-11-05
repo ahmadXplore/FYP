@@ -108,6 +108,12 @@ def _is_bootstrap_admin(email: str) -> bool:
 def _validate_password(password: str) -> None:
     if len(password) < 8:
         raise AuthServiceError(400, "Password must be at least 8 characters long")
+    if not re.search(r"[A-Z]", password):
+        raise AuthServiceError(400, "Password must contain at least one uppercase letter")
+    if not re.search(r"[0-9]", password):
+        raise AuthServiceError(400, "Password must contain at least one number")
+    if not re.search(r"[^A-Za-z0-9]", password):
+        raise AuthServiceError(400, "Password must contain at least one special character")
     if len(password.encode("utf-8")) > 72:
         raise AuthServiceError(400, "Password must be 72 bytes or fewer")
 

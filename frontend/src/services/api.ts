@@ -155,7 +155,22 @@ export interface SignupPendingResponse {
   message: string;
 }
 
-let authToken: string | null = null;
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+const AUTH_TOKEN_STORAGE_KEY = 'greencorridor.access_token';
+
+let authToken: string | null = (() => {
+  try {
+    return sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+})();
 
 function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
@@ -175,6 +190,19 @@ async function getErrorMessage(res: Response, fallback: string): Promise<string>
 export const apiService = {
   setAuthToken(token: string | null) {
     authToken = token;
+    try {
+      if (token) {
+        sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+      } else {
+        sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.warn('Could not persist the authentication session in this browser tab.', error);
+    }
+  },
+
+  getAuthToken() {
+    return authToken;
   },
 
   async requestSignupOtp(data: {
@@ -210,7 +238,7 @@ export const apiService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, role, department }),
     });
-    if (!res.ok) throw new Error(await getErrorMessage(res, `Could not sign in (${res.status})`));
+    if (!res.ok) throw new ApiError(await getErrorMessage(res, `Could not sign in (${res.status})`), res.status);
     return await res.json();
   },
 
